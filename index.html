@@ -1,0 +1,2346 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ishibashi / Handai-mae</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400;1,500&family=Shippori+Mincho:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #3a332d; --ink2: #6f645a; --accent: #6b1d23;
+    --line: rgba(80, 64, 48, .18);
+    --glass: linear-gradient(135deg, rgba(255, 255, 255, .42), rgba(255, 252, 246, .16));
+    --glass-edge: rgba(255, 255, 255, .55);
+    --glass-shadow: 0 10px 32px rgba(60, 40, 20, .16), inset 0 1px 0 rgba(255, 255, 255, .7), inset 0 -1px 0 rgba(255, 255, 255, .15);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    background: radial-gradient(120% 90% at 50% 38%, #f2ede4 0%, #ddd5c8 58%, #c7bcac 100%);
+    font-family: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+    color: var(--ink); -webkit-font-smoothing: antialiased;
+  }
+  canvas { display: block; position: fixed; inset: 0; z-index: 0; touch-action: none; }
+  #title, #panel { z-index: 10; }
+  #loading { z-index: 20; }
+  .glass {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%);
+    border: 1px solid var(--glass-edge); box-shadow: var(--glass-shadow);
+  }
+  #title {
+    position: fixed; left: max(18px, env(safe-area-inset-left)); top: max(16px, env(safe-area-inset-top));
+    pointer-events: none; max-width: min(360px, 56vw);
+  }
+  #title h1 {
+    font-family: 'Cormorant Garamond', 'Times New Roman', serif; font-weight: 500;
+    font-size: 34px; line-height: 1; margin: 0 0 8px; letter-spacing: .01em;
+  }
+  #title h1 em { font-style: italic; font-weight: 400; color: var(--accent); }
+  #title br.m { display: none; }
+  #title h1, #title p { text-shadow: 0 0 10px rgba(255, 250, 240, .9), 0 1px 2px rgba(255, 250, 240, .8); }
+  #title p { margin: 0; font-size: 12px; line-height: 1.8; color: var(--ink2); }
+  #title p.hint { margin-top: 4px; font-size: 11px; letter-spacing: .04em; opacity: .85; }
+  #title .stage {
+    display: inline-block; margin-top: 10px; font-size: 11px; letter-spacing: .06em; padding: 3px 10px;
+    border-radius: 999px; color: var(--ink);
+  }
+  #title .stage.chime b::after { content: ' ♪'; color: var(--accent); }
+  #title .stage b { font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 500; font-size: 13px; margin-left: 4px; }
+  body.night #panel { --glass: linear-gradient(135deg, rgba(40, 46, 66, .38), rgba(20, 24, 38, .18)); }
+  body.night { --ink: #f1e9dd; --ink2: #cfc3b3; --glass: linear-gradient(135deg, rgba(40, 46, 66, .55), rgba(20, 24, 38, .35)); --glass-edge: rgba(255, 255, 255, .22); }
+  body.night #title h1, body.night #title p { text-shadow: 0 0 10px rgba(10, 14, 30, .9), 0 1px 2px rgba(10, 14, 30, .8); }
+  body.night button:not(.on) { color: var(--ink); background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .25); }
+  body.night .ticks, body.night #panel h2 { color: var(--ink2); }
+  .phead { display: flex; align-items: center; justify-content: space-between; margin: -2px 0 6px; }
+  .ptitle { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 15px; color: var(--ink2); }
+  #pToggle { padding: 1px 8px; font-size: 12px; border-radius: 8px; }
+  #panel.collapsed .pbody { display: none; }
+  #panel.collapsed .phead { margin-bottom: 2px; }
+  #panel.collapsed #pToggle { transform: rotate(-90deg); }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; margin: 0; }
+  input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(90deg, #f3c9a0, #fff4e2 33%, #e99a6a 66%, #2c3658); }
+  input[type=range]::-moz-range-track { height: 4px; border-radius: 4px; background: linear-gradient(90deg, #f3c9a0, #fff4e2 33%, #e99a6a 66%, #2c3658); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7px; border-radius: 50%; background: #fffaf2; border: 2px solid var(--accent); box-shadow: 0 2px 6px rgba(0, 0, 0, .25); }
+  input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fffaf2; border: 2px solid var(--accent); }
+  .ticks { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink2); margin: -2px 1px 10px; }
+  .seg { display: flex; margin-bottom: 8px; }
+  .seg button { flex: 1; border-radius: 0; padding: 6px 2px; }
+  .seg button:first-child { border-radius: 10px 0 0 10px; }
+  .seg button:last-child { border-radius: 0 10px 10px 0; }
+  button.wide { width: 100%; margin-bottom: 10px; padding: 7px; letter-spacing: .06em; }
+  #panel h2 span { float: right; letter-spacing: .04em; font-weight: 400; color: var(--ink); }
+  #panel {
+    --glass: linear-gradient(135deg, rgba(255, 255, 255, .28), rgba(255, 252, 246, .07));
+    -webkit-backdrop-filter: blur(12px) saturate(160%) !important; backdrop-filter: blur(12px) saturate(160%) !important;
+    position: fixed; right: max(14px, env(safe-area-inset-right)); top: max(14px, env(safe-area-inset-top));
+    border-radius: 18px; padding: 11px 12px 4px; width: 214px; font-size: 12px;
+  }
+  #panel h2 { font-size: 10.5px; font-weight: 600; letter-spacing: .16em; color: var(--ink2); margin: 2px 0 6px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  button {
+    font: inherit; font-size: 12px; color: var(--ink); background: rgba(255, 255, 255, .28);
+    border: 1px solid rgba(255, 255, 255, .6); border-radius: 10px; padding: 6px 9px; cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6); transition: background .2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:hover { background: rgba(255, 255, 255, .5); }
+  button.on {
+    background: linear-gradient(135deg, rgba(122, 34, 41, .88), rgba(90, 22, 28, .78)); color: #fff6ee;
+    border-color: rgba(255, 210, 200, .35); box-shadow: inset 0 1px 0 rgba(255, 220, 210, .35), 0 2px 8px rgba(107, 29, 35, .25);
+  }
+  #hint {
+    position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+    font-size: 11px; color: var(--ink2); border-radius: 999px; padding: 4px 12px; pointer-events: none; white-space: nowrap;
+  }
+  #loading {
+    position: fixed; inset: 0; display: grid; place-items: center; font-family: 'Cormorant Garamond', serif;
+    font-style: italic; font-size: 20px; color: var(--ink2); transition: opacity .6s;
+  }
+  @media (max-width: 640px) {
+    #title { max-width: calc(100vw - 200px); }
+    #title h1 { font-size: 22px; line-height: 1.05; }
+    #title br.m { display: inline; }
+    #title p { font-size: 10.5px; line-height: 1.6; }
+    #title .stage { font-size: 10px; }
+    #title .long { display: none; }
+    #panel { width: 170px; padding: 8px 9px 2px; }
+    .seg button { font-size: 10.5px; }
+    button { padding: 5px 7px; font-size: 11px; }
+    .row { gap: 4px; margin-bottom: 8px; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="loading">Ishibashi / Handai-mae …</div>
+<div id="title">
+  <h1>Ishibashi <em>/</em><br class="m"> Handai-mae</h1>
+  <p>阪急 石橋阪大前駅とその周辺を、四角く切り出した地面のブロックとして。</p>
+  <p class="hint">ドラッグで回転 ・ ピンチ／ホイールでズーム ・ 2本指でパン</p>
+  <span class="stage glass" id="clock">昼<b>12:00</b></span>
+</div>
+<div id="panel" class="glass">
+  <div class="phead"><span class="ptitle">Controls</span><button id="pToggle" aria-label="操作パネルを開閉">▾</button></div>
+  <div class="pbody">
+    <h2>時間帯 <span id="todName">昼</span></h2>
+    <input type="range" id="tod" min="0" max="3" step="0.01" value="1" aria-label="時間帯">
+    <div class="ticks"><span>朝</span><span>昼</span><span>夕方</span><span>夜</span></div>
+    <h2>電車の本数</h2>
+    <div class="seg" id="freq"><button data-f="mid" class="on">普通</button><button data-f="rush">ラッシュ</button></div>
+    <button id="btnDepart" class="wide">電車を出発させる</button>
+    <h2>視点</h2>
+    <div class="row">
+      <button data-view="sw" class="on">南東の上空</button>
+    </div>
+    <h2>表示</h2>
+    <div class="row">
+      <button id="btnTilt" class="on">ミニチュア風</button>
+      <button id="btnSound" class="on">環境音</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+// ============================================================
+//  基本設定  （平面座標 e=東, n=北 → three.js: x=e, z=-n）
+// ============================================================
+const B = 160;                 // ブロックの半径（一辺 320m）
+const BASE = -34;              // 地層の底
+const D2R = Math.PI / 180;
+const Y_BALLAST = 0.35, Y_RAIL = 0.66, Y_PLAT = 1.7;
+const isTouch = matchMedia('(pointer: coarse)').matches;
+// 駅と線路は「駅座標」で作り、まとめて S 倍して街より大きめにデフォルメする
+const S = 1.25, BS = B / S;
+
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const hash2 = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
+function vnoise(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hash2(xi, yi), b = hash2(xi + 1, yi), c = hash2(xi, yi + 1), d = hash2(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+
+// ============================================================
+//  線路の中心線（Path）
+// ============================================================
+class Path {
+  constructor(e = 0, n = 0, hdeg = 0) { this.pts = [{ e, n, h: hdeg * D2R, s: 0 }]; }
+  static from(list) {
+    const p = new Path(); p.pts = list; let s = 0;
+    list.forEach((q, i) => { if (i) s += Math.hypot(q.e - list[i - 1].e, q.n - list[i - 1].n); q.s = s; });
+    return p;
+  }
+  static chain(...paths) {   // 経路をつなぐ（重なった点は除く）
+    const out = [];
+    paths.forEach(p => p.pts.forEach(q => {
+      const l = out[out.length - 1];
+      if (!l || Math.hypot(q.e - l.e, q.n - l.n) > 0.05) out.push({ e: q.e, n: q.n, h: q.h });
+    }));
+    return Path.from(out);
+  }
+  static spline(points, step = 0.5) {     // 折れ線をなめらかな曲線にする
+    const curve = new THREE.CatmullRomCurve3(points.map(([e, n]) => new THREE.Vector3(e, 0, n)), false, 'centripetal');
+    const N = Math.max(2, Math.ceil(curve.getLength() / step)), ps = curve.getSpacedPoints(N);
+    return Path.from(ps.map((q, i) => {
+      const a = ps[Math.max(0, i - 1)], b = ps[Math.min(N, i + 1)];
+      return { e: q.x, n: q.z, h: Math.atan2(b.x - a.x, b.z - a.z) };
+    }));
+  }
+  get end() { return this.pts[this.pts.length - 1]; }
+  get length() { return this.end.s; }
+  straight(L) { return this._go(L, 0); }
+  arc(R, deg) { return this._go(Math.abs(deg) * D2R * R, Math.sign(deg) / R); }   // deg>0 で右（時計回り）
+  _go(L, k) {
+    const steps = Math.max(1, Math.ceil(L / 0.5)), ds = L / steps;
+    let { e, n, h, s } = this.end;
+    for (let i = 0; i < steps; i++) {
+      const hm = h + k * ds / 2;
+      e += Math.sin(hm) * ds; n += Math.cos(hm) * ds; h += k * ds; s += ds;
+      this.pts.push({ e, n, h, s });
+    }
+    return this;
+  }
+  offset(d) { return Path.from(this.pts.map(p => ({ e: p.e + d * Math.cos(p.h), n: p.n - d * Math.sin(p.h), h: p.h }))); }
+  reversed() { return Path.from(this.pts.slice().reverse().map(p => ({ e: p.e, n: p.n, h: p.h + Math.PI }))); }
+  slice(s0, s1) {
+    const list = [this.at(s0)];
+    this.pts.forEach(p => { if (p.s > s0 && p.s < s1) list.push({ e: p.e, n: p.n, h: p.h }); });
+    list.push(this.at(s1));
+    return Path.from(list);
+  }
+  at(s) {
+    const P = this.pts;
+    if (s <= 0) { const p = P[0]; return { e: p.e + Math.sin(p.h) * s, n: p.n + Math.cos(p.h) * s, h: p.h }; }
+    if (s >= this.length) { const p = this.end, d = s - p.s; return { e: p.e + Math.sin(p.h) * d, n: p.n + Math.cos(p.h) * d, h: p.h }; }
+    let lo = 0, hi = P.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (P[m].s <= s) lo = m; else hi = m; }
+    const a = P[lo], b = P[hi], t = (s - a.s) / (b.s - a.s || 1);
+    return { e: a.e + (b.e - a.e) * t, n: a.n + (b.n - a.n) * t, h: a.h + (b.h - a.h) * t };
+  }
+  sAtN(n) {     // n を最初に横切る位置の s（増減どちらでも）
+    const P = this.pts, sg = Math.sign(P[0].n - n);
+    for (let i = 1; i < P.length; i++) if (Math.sign(P[i].n - n) !== sg) {
+      const t = (n - P[i - 1].n) / (P[i].n - P[i - 1].n || 1); return P[i - 1].s + (P[i].s - P[i - 1].s) * t;
+    }
+    return this.length;
+  }
+  atN(n) { return this.at(this.sAtN(n)); }
+  eAtN(n) { return this.atN(n).e; }
+  nearestS(e, n) {
+    let best = 0, bd = Infinity;
+    this.pts.forEach(p => { const d = (p.e - e) ** 2 + (p.n - n) ** 2; if (d < bd) { bd = d; best = p.s; } });
+    return best;
+  }
+}
+
+// --- 配線（OpenStreetMap の線路・道路を 0.75 倍して駅座標にしたもの） ---
+const OSM = {
+  C: [[12.44,-176.25],[11.02,-166.88],[9.61,-157.5],[8.21,-148.12],[6.8,-138.75],[5.46,-129.38],[4.13,-120.0],[2.78,-110.62],[1.44,-101.25],[0.1,-91.88],[-1.28,-82.5],[-2.68,-73.12],[-4.01,-63.75],[-5.37,-54.38],[-6.74,-45.0],[-8.11,-35.62],[-9.54,-26.25],[-10.98,-16.88],[-12.41,-7.5],[-13.83,1.88],[-15.25,11.25],[-16.66,20.62],[-18.08,30.0],[-20.06,39.38],[-22.98,48.75],[-26.42,58.12],[-30.72,67.5],[-35.58,76.88],[-41.34,86.25],[-48.39,95.62],[-57.01,105.0],[-66.85,114.38],[-78.77,123.75],[-86.14,129.0],[-98.36,137.7],[-110.57,146.41],[-122.79,155.11]],
+  M: [[-1.1,-83.7],[-2.21,-76.2],[-1.82,-66.0],[-0.48,-57.0],[1.82,-46.5],[4.89,-36.0],[8.8,-25.5],[13.06,-15.0],[18.67,-3.75],[24.96,7.5],[32.15,18.75],[41.25,30.0],[51.31,41.25],[63.31,52.5],[75.74,63.75]],
+  R176: [[-54.75,171.75],[-33.75,153.75],[-8.25,132.0],[0.75,123.75],[8.62,115.88],[42.45,81.53],[73.5,49.65],[78.9,43.5],[82.57,38.17],[86.18,31.65],[89.78,23.62],[92.55,14.55],[94.2,5.1],[99.75,-52.5],[101.25,-69.75],[102.75,-86.25],[103.5,-89.25],[105.0,-99.75],[106.5,-118.5],[108.0,-141.75],[112.5,-191.25]],
+  SIDE_A: [[91.72,-8.48],[89.85,7.35],[86.7,18.75],[84.53,25.05],[79.88,34.12],[73.65,43.12],[69.82,47.03],[65.47,51.6],[62.47,54.75],[60.0,57.3],[51.15,66.6],[46.72,70.88],[37.65,79.65],[24.08,93.75],[6.3,112.27],[-2.1,121.43]],
+  SIDE_B: [[-5.7,134.77],[12.0,117.68],[29.92,99.23],[43.8,84.97],[47.85,81.3],[52.5,76.5],[57.0,71.85],[65.93,62.7],[68.55,60.07],[71.55,57.07],[75.15,53.4],[78.97,48.97],[84.3,41.78],[86.32,38.78],[88.5,35.4],[92.78,26.25],[94.35,21.52],[95.1,18.6],[97.57,7.8]],
+  EAST_EXIT: [[1.95,31.35],[5.1,32.78],[14.48,36.97],[22.42,40.42],[51.15,66.6],[57.0,71.85]],
+  RS: [[-164.25,-144.75],[-110.25,-113.25],[-96.82,-106.12],[-84.75,-100.65],[-68.55,-95.4],[-51.15,-91.8],[-36.6,-90.6],[-27.08,-90.22],[0.0,-89.93],[46.58,-89.47],[95.25,-89.25],[103.5,-89.25],[114.0,-89.25],[123.75,-88.5],[132.75,-87.0],[140.25,-83.25],[146.25,-78.75],[157.5,-67.5]],
+  RS_N: [[-56.25,-88.35],[-45.6,-87.53],[-23.48,-87.3],[-18.9,-87.22],[-10.5,-90.6],[-1.5,-90.53],[1.27,-90.53],[5.93,-90.45],[11.77,-85.88],[16.05,-85.88],[43.28,-85.43],[50.18,-85.28],[60.0,-85.2]],
+  RS_S: [[-56.25,-97.88],[-46.35,-96.52],[-36.0,-95.7],[-23.33,-95.4],[-18.38,-95.25],[-10.5,-90.6],[-1.5,-90.53],[1.27,-90.53],[5.93,-90.45],[7.35,-91.57],[11.85,-94.8],[35.33,-94.8],[53.85,-94.65],[63.75,-94.65]],
+  EGATE_OSM: [[2.7,26.47],[1.27,35.92],[-11.25,34.12],[-9.82,24.67]],
+};
+// 宝塚本線：南（大阪梅田）からほぼまっすぐ北北西へ。駅の北で西（池田）へ曲がる
+const C = Path.spline(OSM.C);
+// 東改札の駅舎（2号線と5号線の間の階段を避けるため、2号線に沿って少し北へ）
+const EGATE = OSM.EGATE_OSM.map(([e, n]) => [e - 0.7, n + 4.6]);
+const P1 = C.offset(-2), P2 = C.offset(2);                     // 1号線（下り）・2号線（上り）
+// 5号線：車止めからまっすぐ北東へ。そのまま箕面線の本線になる
+const B5 = { e: 2.475, n: 5.7 }, H5 = 47.73, L5P = 70;   // 車止め・向き・ホーム長
+const P5 = new Path(B5.e, B5.n, H5).straight(200);
+// 3号線・4号線：駅の南で複線のまま右へ分かれ、大きく右カーブして北東へ（今は回送用）
+const P5r = P5.offset(6.35);
+const M = Path.spline([...OSM.M, ...[78, 92, 108, 124, 140, 156].map(n => { const q = P5r.atN(n); return [q.e, q.n]; })]);
+const P3 = M.offset(-2), P4 = M.offset(2);
+// 駅の南の渡り線（1号線→2号線）
+const PX = Path.spline([[P1.atN(-105.45).e, -105.45], [P2.atN(-122.1).e, -122.1]]);
+
+// 列車の運転経路
+const ROUTE = {
+  TD: P1,                     // 宝塚本線 下り（梅田→池田）
+  TU: P2.reversed(),          // 宝塚本線 上り（池田→梅田）
+  MIN: P5.reversed(),         // 箕面→5号線
+  MOUT: P5,                   // 5号線→箕面
+};
+
+// ============================================================
+//  レンダラー・シーン・カメラ
+// ============================================================
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.75 : 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.localClippingEnabled = true;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog('#d9d0c2', 600, 2000);
+const st = new THREE.Group(); st.scale.setScalar(S); scene.add(st);
+const camera = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 10, 6000);
+
+// クリッピング：ブロックの四辺 ＋ 断面用の面
+const secPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 1e5);
+const edgePlanes = [
+  new THREE.Plane(new THREE.Vector3(-1, 0, 0), B + 0.02), new THREE.Plane(new THREE.Vector3(1, 0, 0), B + 0.02),
+  new THREE.Plane(new THREE.Vector3(0, 0, -1), B + 0.02), new THREE.Plane(new THREE.Vector3(0, 0, 1), B + 0.02),
+];
+const CLIP_ALL = [...edgePlanes, secPlane], CLIP_SEC = [secPlane];
+const std = (color, extra = {}, clip = CLIP_ALL) =>
+  new THREE.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0, clippingPlanes: clip, ...extra });
+const NIGHT = [];                            // 夜に光らせる素材 [material, 昼の強さ, 夜に足す強さ]
+
+// ============================================================
+//  ライト
+// ============================================================
+const hemi = new THREE.HemisphereLight('#fff6e8', '#7d6d5b', 1.15); scene.add(hemi);
+const sun = new THREE.DirectionalLight('#fff0da', 2.3);
+sun.position.set(-170, 300, 110);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -260, right: 260, top: 260, bottom: -260, near: 50, far: 900 });
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.5;
+scene.add(sun, sun.target);
+
+// ============================================================
+//  地形（全体が平地）
+// ============================================================
+const H = (e, n) => 0;
+
+// 地下道と階段（駅座標）
+const CUT_N = -2.5 + 14.5;                 // 地下道の中心線（車両1両分北へ。断面もここで切る）
+const PAS = { n0: CUT_N - 3, n1: CUT_N + 3, y0: -6, y1: -3.2, shell: 0.4 };
+const STAIR = { w: 2.4, run: 13 };
+const mkStair = (e, n, h, on) => {
+  const de = Math.sin(h), dn = Math.cos(h);
+  return { e, n, h, de, dn, on, me: e + de * STAIR.run / 2, mn: n + dn * STAIR.run / 2 };
+};
+// 西改札の階段：1号線ホーム上に北向き・南向きの2本。地下道は1号線・2号線の下をくぐり、
+// 2号線と5号線の間に同じ2本をそのまま東へ平行移動した階段が上がる
+const P1c = P1.offset(-4.1), hP1 = P1c.atN(CUT_N).h, DX_ISL = 15;
+const westPair = [
+  [P1c.eAtN(PAS.n1), PAS.n1, hP1],              // 北へ上がる
+  [P1c.eAtN(PAS.n0), PAS.n0, hP1 + Math.PI],    // 南へ上がる
+];
+const stairs = [
+  ...westPair.map(([e, n, h]) => mkStair(e, n, h, 'P1')),
+  ...westPair.map(([e, n, h]) => mkStair(e + DX_ISL, n, h, 'ISL')),
+];
+PAS.e0 = Math.min(stairs[0].e, stairs[1].e) - 2.8; PAS.e1 = Math.max(stairs[2].e, stairs[3].e) + 2.8;
+
+const terrainHoles = stairs.map(s => new THREE.Vector4(s.me * S, s.mn * S, Math.cos(s.h), Math.sin(s.h)));
+const terrainMat = std(null, { vertexColors: true, roughness: 0.96 }, CLIP_SEC);
+terrainMat.onBeforeCompile = (sh) => {
+  sh.uniforms.uHoles = { value: terrainHoles };
+  sh.uniforms.uHoleSize = { value: new THREE.Vector2(STAIR.w / 2 * S, STAIR.run / 2 * S) };
+  sh.vertexShader = sh.vertexShader
+    .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;')
+    .replace('#include <project_vertex>', '#include <project_vertex>\nvWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+  sh.fragmentShader = sh.fragmentShader
+    .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\nuniform vec4 uHoles[${terrainHoles.length}];\nuniform vec2 uHoleSize;`)
+    .replace('void main() {', `void main() {
+  for (int i = 0; i < ${terrainHoles.length}; i++) { vec4 h = uHoles[i]; vec2 r = vec2(vWPos.x - h.x, -vWPos.z - h.y);
+    if (abs(r.x * h.z - r.y * h.w) < uHoleSize.x && abs(r.x * h.w + r.y * h.z) < uHoleSize.y) discard; }`);
+};
+{
+  const SEG = 128;
+  const g = new THREE.PlaneGeometry(2 * B, 2 * B, SEG, SEG); g.rotateX(-Math.PI / 2);
+  const p = g.attributes.position, col = new Float32Array(p.count * 3);
+  const cFlat = new THREE.Color('#c6b99f'), cGrass = new THREE.Color('#8f9d6b'), c = new THREE.Color();
+  for (let i = 0; i < p.count; i++) {
+    const e = p.getX(i), n = -p.getZ(i), h = H(e, n);
+    p.setY(i, h);
+    c.copy(cFlat).lerp(cGrass, smooth(4, 14, h)).multiplyScalar(0.95 + 0.09 * vnoise(e * 0.12, n * 0.12));
+    col.set([c.r, c.g, c.b], i * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  const m = new THREE.Mesh(g, terrainMat); m.receiveShadow = true; scene.add(m);
+}
+
+// ============================================================
+//  地層（ブロック側面）
+// ============================================================
+const LAYERS = [
+  { name: '表土',         color: '#5f4b3b', bot: (e, n, h) => h - 1.3 },
+  { name: '段丘礫・ローム', color: '#9c6f4c', bot: (e, n, h) => h * 0.72 - 6.5 + (vnoise(e * .02, n * .02) - .5) * 2.6 },
+  { name: '砂礫層',       color: '#c6b28c', bot: (e, n, h) => h * 0.42 - 14 + (vnoise(e * .015 + 7, n * .015) - .5) * 3.2 },
+  { name: '粘土層',       color: '#8e9291', bot: (e, n, h) => h * 0.18 - 23 + (vnoise(e * .012 + 13, n * .012 + 5) - .5) * 3.6 },
+  { name: '大阪層群',     color: '#5f6253', bot: () => BASE },
+];
+function layerBounds(e, n) {
+  const h = H(e, n), out = [h]; let prev = h;
+  for (let i = 0; i < LAYERS.length; i++) {
+    let y = LAYERS[i].bot(e, n, h);
+    if (i < LAYERS.length - 1) y = Math.max(Math.min(y, prev - 0.8), BASE + 1.5 * (LAYERS.length - 1 - i));
+    out.push(y); prev = y;
+  }
+  return out;
+}
+// a→b の線に沿って地層の断面を作る（法線は進行方向の右手＝外側）
+function stripGeometry(a, b, holes = [], step = 2.5) {
+  const len = Math.hypot(b.e - a.e, b.n - a.n), de = (b.e - a.e) / len, dn = (b.n - a.n) / len;
+  const Ts = []; for (let t = 0; t < len; t += step) Ts.push(t);
+  Ts.push(len); holes.forEach(h => Ts.push(h.t0, h.t1)); Ts.sort((x, y) => x - y);
+  const T = Ts.filter((t, i) => i === 0 || t - Ts[i - 1] > 1e-4);
+  const bounds = T.map(t => layerBounds(a.e + de * t, a.n + dn * t));
+  const pos = [], col = [], uv = [], c = new THREE.Color();
+  const vtx = (t, y, li) => {
+    pos.push(a.e + de * t, y, -(a.n + dn * t)); uv.push(t / 10, y / 10);
+    c.set(LAYERS[li].color).multiplyScalar(0.9 + 0.16 * vnoise(t * 0.09 + li * 17, y * 0.35));
+    col.push(c.r, c.g, c.b);
+  };
+  const quad = (t0, t1, top0, bot0, top1, bot1, li) => {
+    vtx(t0, bot0, li); vtx(t1, bot1, li); vtx(t1, top1, li);
+    vtx(t0, bot0, li); vtx(t1, top1, li); vtx(t0, top0, li);
+  };
+  for (let k = 0; k < T.length - 1; k++) {
+    const t0 = T[k], t1 = T[k + 1], tm = (t0 + t1) / 2, L0 = bounds[k], L1 = bounds[k + 1];
+    const hole = holes.find(h => tm > h.t0 && tm < h.t1);
+    for (let i = 0; i < LAYERS.length; i++) {
+      const top0 = L0[i], bot0 = L0[i + 1], top1 = L1[i], bot1 = L1[i + 1];
+      if (!hole) { quad(t0, t1, top0, bot0, top1, bot1, i); continue; }
+      const up = y => Math.max(y, hole.y1), dw = y => Math.min(y, hole.y0);
+      quad(t0, t1, up(top0), up(bot0), up(top1), up(bot1), i);
+      quad(t0, t1, dw(top0), dw(bot0), dw(top1), dw(bot1), i);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.computeVertexNormals();
+  return g;
+}
+// 地層のざらつき（砂粒・小石）
+const strataTex = (() => {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 256; const x = cv.getContext('2d');
+  x.fillStyle = '#d8d8d8'; x.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 5200; i++) { const g = 150 + hash2(i, 1) * 105 | 0; x.fillStyle = `rgb(${g},${g},${g})`; x.fillRect(hash2(i, 2) * 256, hash2(i, 3) * 256, 1 + hash2(i, 4) * 2, 1 + hash2(i, 5) * 2); }
+  for (let i = 0; i < 70; i++) {                                     // 小石
+    const r = 1.5 + hash2(i, 6) * 4, cx = hash2(i, 7) * 256, cy = hash2(i, 8) * 256, g = 200 + hash2(i, 9) * 55 | 0;
+    x.fillStyle = `rgb(${g},${g - 6},${g - 14})`; x.beginPath(); x.ellipse(cx, cy, r * 1.3, r, hash2(i, 10) * 3, 0, Math.PI * 2); x.fill();
+    x.fillStyle = 'rgba(0,0,0,.18)'; x.beginPath(); x.ellipse(cx + 1, cy + 1.2, r * 1.3, r, hash2(i, 10) * 3, 0, Math.PI * 2); x.fill();
+  }
+  for (let y = 0; y < 256; y += 6) { x.fillStyle = `rgba(0,0,0,${0.03 + hash2(y, 11) * 0.05})`; x.fillRect(0, y, 256, 1 + hash2(y, 12) * 2); }   // 層理
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.repeat.set(1.6, 1.6); return t;
+})();
+const strataMat = std(null, { vertexColors: true, roughness: 1, map: strataTex }, CLIP_SEC);
+{
+  const c = [{ e: -B, n: -B }, { e: B, n: -B }, { e: B, n: B }, { e: -B, n: B }];
+  const g = mergeGeometries([stripGeometry(c[0], c[1]), stripGeometry(c[1], c[2]), stripGeometry(c[2], c[3]), stripGeometry(c[3], c[0])]);
+  scene.add(new THREE.Mesh(g, strataMat));
+}
+
+// 台座と机
+{
+  const plinth = new THREE.Mesh(new RoundedBoxGeometry(2 * B + 9, 5, 2 * B + 9, 3, 1.4),
+    new THREE.MeshStandardMaterial({ color: '#4f3e31', roughness: 0.55, metalness: 0.05 }));
+  plinth.position.y = BASE - 2.5; plinth.receiveShadow = true; plinth.castShadow = true; scene.add(plinth);
+  const table = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.ShadowMaterial({ opacity: 0.16 }));
+  table.rotateX(-Math.PI / 2); table.position.y = BASE - 5; table.receiveShadow = true; scene.add(table);
+}
+// 方位記号（フォント読み込み後に描く）
+const compassCanvas = document.createElement('canvas'); compassCanvas.width = compassCanvas.height = 256;
+const compassTex = new THREE.CanvasTexture(compassCanvas); compassTex.colorSpace = THREE.SRGBColorSpace;
+{
+  const comp = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshBasicMaterial({ map: compassTex, transparent: true, depthWrite: false }));
+  comp.rotateX(-Math.PI / 2); comp.position.set(-B - 34, BASE - 4.95, B + 30); scene.add(comp);
+}
+
+// ============================================================
+//  線路（バラスト・枕木・レール）
+// ============================================================
+function sweep(path, profile, { step = 1, lat = 0, y = 0 } = {}) {
+  const pts = [];
+  for (let s = 0; s < path.length; s += step) pts.push(path.at(s));
+  pts.push(path.at(path.length));
+  const inside = pts.filter(p => Math.abs(p.e) < BS + 4 && Math.abs(p.n) < BS + 4);
+  const np = profile.length, pos = [], idx = [];
+  inside.forEach(p => {
+    const c = Math.cos(p.h), s = Math.sin(p.h);
+    profile.forEach(([l, py]) => { const L = lat + l; pos.push(p.e + L * c, y + py, -(p.n - L * s)); });
+  });
+  for (let i = 0; i < inside.length - 1; i++) for (let j = 0; j < np - 1; j++) {
+    const a = i * np + j, b = (i + 1) * np + j, c = (i + 1) * np + j + 1, d = i * np + j + 1;
+    idx.push(a, c, b, a, d, c);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+const TRACKS = [P1, P2, P3, P4, P5, PX];
+{
+  const ballastProf = [[-2.15, 0], [-1.5, Y_BALLAST], [1.5, Y_BALLAST], [2.15, 0]];
+  const railProf = [[-0.055, Y_RAIL - 0.16], [-0.055, Y_RAIL], [0.055, Y_RAIL], [0.055, Y_RAIL - 0.16]];
+  const ballast = [], rails = [], sleepers = [];
+  TRACKS.forEach((p, i) => {
+    const dy = i * 0.025;
+    ballast.push(sweep(p, ballastProf, { y: dy }));
+    rails.push(sweep(p, railProf, { lat: -0.7175, y: dy }), sweep(p, railProf, { lat: 0.7175, y: dy }));
+    for (let s = 0.3; s < p.length; s += 0.65) {
+      const q = p.at(s); if (Math.abs(q.e) > BS + 1 || Math.abs(q.n) > BS + 1) continue;
+      sleepers.push({ e: q.e, n: q.n, h: q.h, y: dy });
+    }
+  });
+  const mB = new THREE.Mesh(mergeGeometries(ballast), std('#9d968b', { roughness: 1 }));
+  mB.receiveShadow = true; st.add(mB);
+  st.add(new THREE.Mesh(mergeGeometries(rails), std('#8d8c8f', { roughness: 0.35, metalness: 0.7 })));
+  const sl = new THREE.InstancedMesh(new THREE.BoxGeometry(2.3, 0.15, 0.24), std('#756a5f'), sleepers.length);
+  const o = new THREE.Object3D();
+  sleepers.forEach((q, i) => {
+    o.position.set(q.e, Y_BALLAST + 0.075 + q.y, -q.n); o.rotation.set(0, -q.h, 0); o.updateMatrix(); sl.setMatrixAt(i, o.matrix);
+  });
+  sl.receiveShadow = true; st.add(sl);
+  // 5号線の車止め
+  const stop = new THREE.Mesh(new THREE.BoxGeometry(3, 1.1, 0.9), std('#b8463c'));
+  const sp = P5.at(-0.6); stop.position.set(sp.e, 0.9, -sp.n); stop.rotation.y = -H5 * D2R; stop.castShadow = true; st.add(stop);
+}
+
+// ============================================================
+//  ホーム
+// ============================================================
+const platTop = std('#ebe7df', { roughness: 0.85, emissive: '#fff0d4', emissiveIntensity: 0 }), platSide = std('#b9b2a6');
+NIGHT.push([platTop, 0, 0.2]);
+const W2 = P2.offset(1.6), E3o = P3.offset(-1.6);           // 島式ホームの西縁・東縁
+const stairHole = (s) => {
+  const ax = Math.cos(s.h) * STAIR.w / 2, ay = -Math.sin(s.h) * STAIR.w / 2;     // 横方向
+  const fx = s.de * STAIR.run, fy = s.dn * STAIR.run;                           // 進行方向
+  const h = new THREE.Path();
+  h.moveTo(s.e - ax, s.n - ay); h.lineTo(s.e + ax, s.n + ay);
+  h.lineTo(s.e + ax + fx, s.n + ay + fy); h.lineTo(s.e - ax + fx, s.n - ay + fy); h.closePath();
+  return h;
+};
+const PLAT_POLYS = [];                       // 街の建物を避けるためのホーム外形
+function platformMesh(shape) {
+  PLAT_POLYS.push(shape.getPoints().map(v => [v.x, v.y]));
+  const g = new THREE.ExtrudeGeometry(shape, { depth: Y_PLAT - 0.12, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.06, bevelSegments: 2, curveSegments: 2 });
+  g.rotateX(-Math.PI / 2); g.translate(0, 0.06, 0);
+  const m = new THREE.Mesh(g, [platTop, platSide]); m.castShadow = m.receiveShadow = true; st.add(m);
+  return m;
+}
+// 平行な2本の縁で挟まれた帯状のホーム
+function bandShape(path, d0, d1, n0, n1) {
+  const A = path.offset(d0), Bo = path.offset(d1), s0 = path.sAtN(n0), s1 = path.sAtN(n1);
+  const sh = new THREE.Shape(); const a0 = A.at(s0); sh.moveTo(a0.e, a0.n);
+  for (let s = s0 + 1; s < s1; s += 1) { const q = A.at(s); sh.lineTo(q.e, q.n); }
+  for (let s = s1; s > s0; s -= 1) { const q = Bo.at(s); sh.lineTo(q.e, q.n); }
+  const b0 = Bo.at(s0); sh.lineTo(b0.e, b0.n); sh.closePath();
+  return sh;
+}
+const PL1 = { n0: -52.5, n1: 92 }, PL4 = { n0: -60, n1: 44 }, PL2_N = 75;
+// 西側の単式ホーム（1号線）
+{ const sh = bandShape(P1, -1.6, -6.6, PL1.n0, PL1.n1); stairs.filter(t => t.on === 'P1').forEach(t => sh.holes.push(stairHole(t))); platformMesh(sh); }
+// 東側の単式ホーム（4号線）
+{ const sh = bandShape(P4, 1.6, 6.6, PL4.n0, PL4.n1); platformMesh(sh); }
+// 中央の三角形の島式ホーム
+//  西：2号線（北は細い帯になって続く）／北：東改札の駅舎／北東：5号線の降車ホーム
+//  5号線が北東の一角を貫き、その南東側が5号線の乗車ホーム、東の縁が3号線
+let ISL_N0, ISL_SHAPE_AT, ISL_STIP;
+{
+  let n0 = M.pts[0].n + 2; while (E3o.eAtN(n0) - W2.eAtN(n0) < 1.4) n0 += 0.5;
+  ISL_N0 = n0;
+  const L5 = P5.offset(-1.6), R5e = P5.offset(1.6);
+  const sepTo3 = (s) => { const q = P5.at(s), k = P3.at(P3.nearestS(q.e, q.n)); return Math.hypot(k.e - q.e, k.n - q.n); };
+  let sTip = 0; while (sTip < 120 && sepTo3(sTip) > 4.0) sTip += 0.5;          // 乗車ホームの北東端
+  sTip = Math.min(sTip, L5P);
+  const tipR = R5e.at(sTip), q3 = E3o.at(E3o.nearestS(tipR.e, tipR.n));
+  const strip = P2.offset(6.1), eg = EGATE;
+  ISL_STIP = sTip;
+  // notch：5号線の切り欠きがどこまで食い込むか（ホームは車止めまで、屋根は少し手前まで）
+  ISL_SHAPE_AT = (notch) => {
+  const sh = new THREE.Shape();
+  sh.moveTo((W2.eAtN(n0) + E3o.eAtN(n0)) / 2, n0 - 1);
+  for (let n = n0; n < PL2_N; n += 1) sh.lineTo(W2.eAtN(n), n);
+  { const a = W2.atN(PL2_N), b = strip.atN(PL2_N); sh.lineTo(a.e, a.n); sh.lineTo(b.e, b.n); }
+  for (let n = PL2_N - 1; n > eg[1][1]; n -= 1) sh.lineTo(strip.eAtN(n), n);
+  sh.lineTo(eg[1][0], eg[1][1]); sh.lineTo(eg[0][0], eg[0][1]);                  // 駅舎の北東角 → 南東角
+  for (let s5 = 26; s5 <= L5P; s5 += 2) {                                        // 降車ホームの北西の縁（先細り）
+    const w = 6.2 - (s5 - 26) / (L5P - 26) * 2.6, q = P5.offset(-w).at(s5); sh.lineTo(q.e, q.n);
+  }
+  for (let s5 = L5P; s5 > notch; s5 -= 2) { const q = L5.at(s5); sh.lineTo(q.e, q.n); }
+  { const q = L5.at(notch); sh.lineTo(q.e, q.n); const r = R5e.at(notch); sh.lineTo(r.e, r.n); }
+  for (let s5 = Math.floor(notch / 2) * 2 + 2; s5 < sTip; s5 += 2) { const q = R5e.at(s5); sh.lineTo(q.e, q.n); }
+  sh.lineTo(tipR.e, tipR.n); sh.lineTo(q3.e, q3.n);
+  for (let n = Math.floor(q3.n); n > n0; n -= 1) sh.lineTo(E3o.eAtN(n), n);
+  sh.lineTo(E3o.eAtN(n0), n0); sh.closePath();
+  return sh;
+  };
+  const sh = ISL_SHAPE_AT(-1.5);
+  stairs.filter(t => t.on === 'ISL').forEach(t => sh.holes.push(stairHole(t)));
+  platformMesh(sh);
+}
+
+// ============================================================
+//  地下道（各ホームを結ぶ）
+// ============================================================
+const passage = new THREE.Group(); st.add(passage);
+{
+  const lit = (color, glow, k = 0.35) => std(color, { emissive: glow, emissiveIntensity: k, roughness: 0.8 }, CLIP_SEC);
+  const mWall = lit('#eee6d6', '#5a4a34'), mFloor = lit('#b7b0a4', '#3a3226', 0.25), mCeil = lit('#f4f1ea', '#6a5a40', 0.45);
+  const mLight = new THREE.MeshBasicMaterial({ color: '#fff3d6', clippingPlanes: CLIP_SEC });
+  const mStep = lit('#cfc8bc', '#4a3e2e', 0.3), mTrench = lit('#cbc5ba', '#3e3428', 0.25);
+  const plane = (w, h, mat, x, y, z, ry = 0, rx = 0, parent = passage) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+    m.position.set(x, y, z); m.rotation.set(rx, ry, 0, 'YXZ'); parent.add(m); return m;
+  };
+  const { e0, e1, n0, n1, y0, y1 } = PAS, len = e1 - e0, wid = n1 - n0, hgt = y1 - y0;
+  const cx = (e0 + e1) / 2, cz = -(n0 + n1) / 2, cy = (y0 + y1) / 2;
+  plane(len, wid, mFloor, cx, y0, cz, 0, -Math.PI / 2);
+  plane(len, wid, mCeil, cx, y1, cz, 0, Math.PI / 2);
+  plane(wid, hgt, mWall, e0, cy, cz, Math.PI / 2);        // 西端
+  plane(wid, hgt, mWall, e1, cy, cz, -Math.PI / 2);       // 東端
+  // 南壁・北壁（階段の開口部を残す）
+  [[n0, Math.PI], [n1, 0]].forEach(([nw, ry]) => {
+    const open = stairs.filter(t => Math.abs(t.n - nw) < 0.01).sort((a, b) => a.e - b.e)
+      .flatMap(t => { const hw = STAIR.w / 2 / Math.abs(Math.cos(t.h)); return [t.e - hw, t.e + hw]; });
+    const cuts = [e0, ...open, e1];
+    for (let i = 0; i < cuts.length; i += 2) plane(cuts[i + 1] - cuts[i], hgt, mWall, (cuts[i] + cuts[i + 1]) / 2, cy, -nw, ry);
+  });
+  const light = new THREE.Mesh(new THREE.BoxGeometry(len - 2, 0.06, 0.4), mLight);
+  light.position.set(cx, y1 - 0.04, -(CUT_N + 0.8)); passage.add(light);
+  // 階段（地下道 → ホーム）。足元を原点に、北(-z)向きに作って回す
+  const rise = Y_PLAT - y0, N = 44, r = rise / N, t = STAIR.run / N;
+  const sh = new THREE.Shape(); sh.moveTo(0, 0);
+  for (let i = 0; i < N; i++) { sh.lineTo(i * t, (i + 1) * r); sh.lineTo((i + 1) * t, (i + 1) * r); }
+  sh.lineTo(STAIR.run, 0); sh.closePath();
+  const stepGeo = new THREE.ExtrudeGeometry(sh, { depth: STAIR.w, bevelEnabled: false });
+  stepGeo.rotateY(Math.PI / 2); stepGeo.translate(-STAIR.w / 2, 0, 0);
+  stairs.forEach(s => {
+    const g = new THREE.Group(); g.position.set(s.e, 0, -s.n); g.rotation.y = -s.h; passage.add(g);
+    const stp = new THREE.Mesh(stepGeo, mStep); stp.position.y = y0; g.add(stp);
+    const tz = -STAIR.run / 2;
+    plane(STAIR.run, -y0 + 0.2, mTrench, -STAIR.w / 2, (y0 - 0.2) / 2, tz, Math.PI / 2, 0, g);     // 掘割の壁
+    plane(STAIR.run, -y0 + 0.2, mTrench, STAIR.w / 2, (y0 - 0.2) / 2, tz, -Math.PI / 2, 0, g);
+    plane(STAIR.w, -y1, mTrench, 0, y1 / 2, 0, Math.PI, 0, g);                                       // 開口部の上の壁
+    const l2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, STAIR.run * 0.8), mLight);
+    l2.position.set(-STAIR.w / 2 + 0.05, y1 + 1.6, tz); g.add(l2);
+  });
+}
+
+// ============================================================
+//  断面（「断面アップ」で地下道の線で切る）
+// ============================================================
+const capGroup = new THREE.Group(), capSt = new THREE.Group();
+capGroup.visible = capSt.visible = false; scene.add(capGroup); st.add(capSt);
+{
+  const zc = -CUT_N - 0.03, zf = zc + 0.01;     // 駅座標（断面のすぐ北側）
+  const o = PAS.shell;
+  const strata = stripGeometry({ e: -B, n: -zc * S }, { e: B, n: -zc * S },
+    [{ t0: (PAS.e0 - o) * S + B, t1: (PAS.e1 + o) * S + B, y0: (PAS.y0 - o) * S, y1: (PAS.y1 + o) * S }], 1.25);
+  capGroup.add(new THREE.Mesh(strata, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, map: strataTex })));
+  const conc = new THREE.MeshStandardMaterial({ color: '#a8a49c', roughness: 0.9 });
+  const rect = (x0, x1, y0, y1, mat, z = zc) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, y1 - y0), mat);
+    m.position.set((x0 + x1) / 2, (y0 + y1) / 2, z); capSt.add(m);
+  };
+  rect(PAS.e0 - o, PAS.e1 + o, PAS.y1, PAS.y1 + o, conc);
+  rect(PAS.e0 - o, PAS.e1 + o, PAS.y0 - o, PAS.y0, conc);
+  rect(PAS.e0 - o, PAS.e0, PAS.y0, PAS.y1, conc);
+  rect(PAS.e1, PAS.e1 + o, PAS.y0, PAS.y1, conc);
+  // 地上部：ホームとバラスト・レールの断面（線路が斜めに切られる分だけ幅を広げる）
+  const pc = new THREE.MeshStandardMaterial({ color: '#cfc8bb', roughness: 0.9 });
+  const bc = new THREE.MeshStandardMaterial({ color: '#8f887d', roughness: 1 });
+  const rc = new THREE.MeshStandardMaterial({ color: '#77777b', roughness: 0.4, metalness: 0.6 });
+  const cut5 = CUT_N > B5.n - 1;                              // 5号線の切り欠きを横切るか
+  const islSec = cut5
+    ? [[W2.eAtN(CUT_N), P5.offset(-1.6).eAtN(CUT_N)], [P5.offset(1.6).eAtN(CUT_N), E3o.eAtN(CUT_N)]]
+    : [[W2.eAtN(CUT_N), E3o.eAtN(CUT_N)]];
+  [[P1.offset(-6.6).eAtN(CUT_N), P1.offset(-1.6).eAtN(CUT_N)], ...islSec,
+   [P4.offset(1.6).eAtN(CUT_N), P4.offset(6.6).eAtN(CUT_N)]].forEach(([x0, x1]) => rect(x0, x1, 0, Y_PLAT, pc, zf));
+  [P1, P2, P3, P4, ...(cut5 ? [P5] : [])].forEach(p => {
+    const q = p.atN(CUT_N), e = q.e, k = 1 / Math.cos(q.h), s = new THREE.Shape();
+    s.moveTo(e - 2.15 * k, 0); s.lineTo(e + 2.15 * k, 0); s.lineTo(e + 1.5 * k, Y_BALLAST); s.lineTo(e - 1.5 * k, Y_BALLAST); s.closePath();
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(s), bc); m.position.z = zf; capSt.add(m);
+    rect(e - 1.15 * k, e + 1.15 * k, Y_BALLAST, Y_BALLAST + 0.15, bc, zf);
+    [-0.7175, 0.7175].forEach(l => rect(e + l * k - 0.06, e + l * k + 0.06, Y_RAIL - 0.16, Y_RAIL, rc, zf + 0.005));
+  });
+}
+
+// ============================================================
+//  改札・道路・踏切・立体交差（仮の目印）
+// ============================================================
+const terrainY = (e, n) => Math.max(H(e * S, n * S) / S, 0);      // 駅座標での地面の高さ
+let EAST_GATE, WEST_GATE, XING_LABELS = [];
+const STATION_ROOF = '#8e958f';              // 駅の屋根・アーケードの屋根の色
+const CROSSING_BOOMS = [];                   // 遮断かんの回転軸
+const CROSSINGS = [];                        // 踏切ごとの { e, n, booms, lamps }
+const MODEL_ROADS = [];                      // [path, 半幅]（街の建物を避ける）
+const VIADUCTS = [];                         // 高架の道路 { path, h, w, jS }（車を走らせる）
+let JUNCTION = null;                         // 176号線と府道がぶつかる交差点
+const VIADUCT_LABELS = [];
+{
+  const mGate = std('#ece5d6'), mRoof = std(STATION_ROOF, { roughness: 0.6 });
+  const box = (w, h, d, mat, e, y, n, rot = 0) => {
+    const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 2, 0.15), mat);
+    m.position.set(e, y + h / 2, -n); m.rotation.y = rot; m.castShadow = m.receiveShadow = true; st.add(m); return m;
+  };
+  // 西改札：1号線ホームの中ほど（大阪梅田寄り）の西側、西口の通りに面する
+  const wg = P1.offset(-10.1).atN(-2.5);
+  box(6, 4.2, 12, mGate, wg.e, 0, wg.n, -wg.h); box(7, 0.5, 13, mRoof, wg.e, 4.2, wg.n, -wg.h);
+  WEST_GATE = wg;
+  // 東改札：5号線の車止めの少し北、2号線と5号線の間に2号線と平行に建つ駅舎。東側の出口から東口の道へ
+  const g4 = EGATE, ge = g4.reduce((a, q) => a + q[0], 0) / 4, gn = g4.reduce((a, q) => a + q[1], 0) / 4;
+  const gh = P2.atN(gn).h;
+  box(12.4, 3.4, 9.4, mGate, ge, Y_PLAT, gn, -gh);              // 屋根は2号線・5号線と一体の大屋根（街の段で作る）
+  EAST_GATE = { e: ge, n: gn };
+
+  const roadMat = std('#86827c', { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  const concMat = std('#bdb8ae', { roughness: 0.85 }), concDark = std('#a39e94');
+  // 道路の帯（高さ = 地面 + h(s)）
+  // 地面の重なり順：舗装 0.012 < 公園 0.03 < 駐車場 0.04 < 街の道路 0.05〜0.08 < 作った道路 0.10 < 高架の路面 0.13
+  function ribbon(path, width, hFn = () => 0, lift = 0.10) {
+    const g = sweep(path, [[-width / 2, 0], [width / 2, 0]], { step: 1 });
+    const pos = g.attributes.position;
+    // sweep は block 内の点だけを並べるので、各断面の中心から s を取り直す
+    for (let i = 0; i < pos.count; i += 2) {
+      const ex = (pos.getX(i) + pos.getX(i + 1)) / 2, nx = -(pos.getZ(i) + pos.getZ(i + 1)) / 2;
+      const sc = path.nearestS(ex, nx), y = terrainY(ex, nx) + hFn(sc) + lift;
+      pos.setY(i, y); pos.setY(i + 1, y);
+    }
+    g.computeVertexNormals();
+    const m = new THREE.Mesh(g, roadMat); m.receiveShadow = true; st.add(m); return m;
+  }
+  // 高架・盛土の本体（h が spanMin 以上は橋桁、それ未満は擁壁つきの盛土）
+  function viaduct(path, width, hFn, { spanMin = 4.5, thick = 1.2, pierEvery = 13 } = {}) {
+    const pos = [], hw = width / 2;
+    let prev = null, prevSpan = null;
+    for (let sc = 0; sc <= path.length; sc += 1) {
+      const h = hFn(sc); const q = path.at(sc);
+      if (Math.abs(q.e) > BS + 3 || Math.abs(q.n) > BS + 3 || h < 0.05) { prev = null; continue; }
+      const c = Math.cos(q.h), sn = Math.sin(q.h), g0 = terrainY(q.e, q.n), top = g0 + h;
+      const span = h >= spanMin, bot = span ? top - thick : g0 - 0.3;
+      const L = [q.e - hw * c, q.n + hw * sn], R = [q.e + hw * c, q.n - hw * sn];
+      const cur = [[L, bot], [L, top], [R, top], [R, bot]];
+      if (prev) {
+        for (let k = 0; k < 4; k++) {
+          const a0 = prev[k], a1 = prev[(k + 1) % 4], b0 = cur[k], b1 = cur[(k + 1) % 4];
+          const v = (pp) => [pp[0][0], pp[1], -pp[0][1]];
+          pos.push(...v(a0), ...v(b1), ...v(b0), ...v(a0), ...v(a1), ...v(b1));
+        }
+        if (span !== prevSpan) {               // 橋台：桁と盛土の境目をふさぐ
+          const ab = new THREE.Mesh(new THREE.BoxGeometry(width, top - g0 + 0.3, 1.2), concDark);
+          ab.position.set(q.e, (top + g0 - 0.3) / 2, -q.n); ab.rotation.y = -q.h; st.add(ab);
+        }
+      }
+      prev = cur; prevSpan = span;
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, concMat); m.castShadow = m.receiveShadow = true; m.material.side = THREE.DoubleSide; st.add(m);
+    // 欄干
+    [-1, 1].forEach(sd => {
+      const pp = [];
+      for (let sc = 0; sc <= path.length; sc += 1) {
+        const h = hFn(sc), q = path.at(sc); if (h < 0.4) continue;
+        pp.push({ e: q.e + sd * (hw - 0.15) * Math.cos(q.h), n: q.n - sd * (hw - 0.15) * Math.sin(q.h), h: q.h, y: terrainY(q.e, q.n) + h });
+      }
+      if (pp.length < 2) return;
+      const gp = new THREE.BufferGeometry(), idx = [];
+      const v = []; pp.forEach(q => v.push(q.e, q.y, -q.n, q.e, q.y + 1.0, -q.n));
+      for (let i = 0; i < pp.length - 1; i++) { const a = 2 * i; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+      gp.setAttribute('position', new THREE.Float32BufferAttribute(v, 3)); gp.setIndex(idx); gp.computeVertexNormals();
+      const wm = new THREE.Mesh(gp, concDark); wm.material.side = THREE.DoubleSide; wm.castShadow = true; st.add(wm);
+    });
+    // 橋脚（線路の上には立てない）
+    const pierGeo = new THREE.BoxGeometry(1.6, 1, 2.6);
+    for (let sc = pierEvery / 2; sc < path.length; sc += pierEvery) {
+      const h = hFn(sc); if (h < spanMin) continue;
+      const q = path.at(sc); if (Math.abs(q.e) > BS || Math.abs(q.n) > BS) continue;
+      if (TRACKS.some(t => { const k = t.at(t.nearestS(q.e, q.n)); return Math.hypot(k.e - q.e, k.n - q.n) < 4.5; })) continue;
+      const g0 = terrainY(q.e, q.n), ph = h - thick;
+      const pr = new THREE.Mesh(pierGeo, concDark); pr.scale.y = ph; pr.position.set(q.e, g0 + ph / 2, -q.n);
+      pr.rotation.y = -q.h; pr.castShadow = true; st.add(pr);
+    }
+  }
+  // 踏切：道路と線路の交点を探して、敷板と遮断機を置く
+  const mDeck = std('#55524e'), mPost = std('#2d2b29');
+  const stripeTex = (() => {
+    const cv = document.createElement('canvas'); cv.width = 128; cv.height = 16; const x = cv.getContext('2d');
+    for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#262321' : '#e9c12f'; x.beginPath(); x.moveTo(i * 16, 0); x.lineTo(i * 16 + 16, 0); x.lineTo(i * 16 + 8, 16); x.lineTo(i * 16 - 8, 16); x.fill(); }
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.RepeatWrapping; return t;
+  })();
+  const mStripe = std('#ffffff', { map: stripeTex, roughness: 0.6 });
+  const mLamp = std('#3b0f0c', { emissive: '#ff3320', emissiveIntensity: 0.25, roughness: 0.4 });
+  const mBox = std('#3a3734', { roughness: 0.7 });
+  const gPost = new THREE.CylinderGeometry(0.13, 0.15, 4.4, 8), gGear = new RoundedBoxGeometry(0.5, 0.8, 0.45, 1, 0.06);
+  const gCross = new THREE.BoxGeometry(1.5, 0.22, 0.06), gLamp = new THREE.CylinderGeometry(0.2, 0.2, 0.16, 12);
+  // 遮断機1基：柱・踏切標識（×印）・警報灯2つ・遮断かん（道路の中心へ向けて）
+  function barrierUnit(e, n, boomH, len, rec) {
+    const g = new THREE.Group(); g.position.set(e, 0, -n);
+    g.rotation.y = Math.PI / 2 - boomH;                                             // ローカル +x = 遮断かんの向き（線路と平行）
+    const post = new THREE.Mesh(gPost, mPost); post.position.y = 2.2; post.castShadow = true; g.add(post);
+    [Math.PI / 4, -Math.PI / 4].forEach(a => { const c = new THREE.Mesh(gCross, mStripe); c.position.set(0, 4.1, 0); c.rotation.set(0, 0, a); g.add(c); });
+    [-0.38, 0.38].forEach((x, li) => [-0.16, 0.16].forEach(z => { const l = new THREE.Mesh(gLamp, rec ? rec.lamps[li] : mLamp); l.position.set(x, 3.25, z); l.rotation.x = Math.PI / 2; g.add(l); }));
+    const gear = new THREE.Mesh(gGear, mBox); gear.position.set(0.35, 1.15, 0); gear.castShadow = true; g.add(gear);
+    const pivot = new THREE.Group(); pivot.position.set(0.55, 1.25, 0); g.add(pivot);
+    const boom = new THREE.Mesh(new THREE.BoxGeometry(len, 0.12, 0.12), mStripe); boom.position.x = len / 2; boom.castShadow = true;
+    boom.geometry.attributes.uv.array.forEach((v, i, a) => { if (i % 2 === 0) a[i] = v * len / 1.2; });
+    pivot.add(boom); pivot.rotation.z = 1.45;                                        // 上がった状態
+    pivot.userData.up = 1.45; CROSSING_BOOMS.push(pivot); if (rec) rec.booms.push(pivot);
+    st.add(g);
+  }
+  function crossings(path, width, label) {
+    const hits = [];
+    for (let sc = 0; sc <= path.length; sc += 0.5) {
+      const q = path.at(sc); if (Math.abs(q.e) > BS || Math.abs(q.n) > BS) continue;
+      TRACKS.forEach(t => { const k = t.at(t.nearestS(q.e, q.n)); if (Math.hypot(k.e - q.e, k.n - q.n) < 0.5) hits.push(sc); });
+    }
+    if (!hits.length) return;
+    hits.sort((x, y) => x - y);
+    const groups = [[hits[0], hits[0]]];
+    hits.forEach(h => { const g = groups[groups.length - 1]; if (h - g[1] < 10) g[1] = h; else groups.push([h, h]); });
+    groups.forEach(([t0, t1]) => {
+      t0 -= 2.8; t1 += 2.8;
+      const xm = path.at((t0 + t1) / 2);
+      // 警報灯は左右で交互に点滅させるので、踏切ごとに2つの素材を持つ
+      const rec = { e: xm.e, n: xm.n, booms: [], lamps: [0, 1].map(() => std('#3b0f0c', { emissive: '#ff3320', emissiveIntensity: 0.15, roughness: 0.4 })), active: false };
+      CROSSINGS.push(rec);
+      // 線路の向きを基準にする（道路が斜めに渡っても、敷板と遮断機は線路と平行）
+      let ref = null;
+      TRACKS.forEach(tk => { const k = tk.at(tk.nearestS(xm.e, xm.n)), d = Math.hypot(k.e - xm.e, k.n - xm.n); if (!ref || d < ref.d) ref = { d, h: k.h }; });
+      const ht = ref.h, ax = [Math.sin(ht), Math.cos(ht)], px = [Math.cos(ht), -Math.sin(ht)];      // 線路方向・線路に直角
+      const U = (q) => (q.e - xm.e) * px[0] + (q.n - xm.n) * px[1], A = (q) => (q.e - xm.e) * ax[0] + (q.n - xm.n) * ax[1];
+      const grpHits = hits.filter(h => h >= t0 && h <= t1).map(h => U(path.at(h)));
+      const uMin = Math.min(...grpHits) - 2.6, uMax = Math.max(...grpHits) + 2.6;
+      const roadAt = (u) => { let b = null; for (let tt = t0 - 22; tt <= t1 + 22; tt += 0.25) { const q = path.at(tt), d = Math.abs(U(q) - u); if (!b || d < b.d) b = { d, q }; } return b.q; };
+      const sinT = Math.max(0.35, Math.abs(Math.sin(xm.h - ht))), halfA = width / 2 / sinT;
+      const qa = roadAt(uMin), qb = roadAt(uMax), aMin = Math.min(A(qa), A(qb)) - halfA, aMax = Math.max(A(qa), A(qb)) + halfA;
+      const uc = (uMin + uMax) / 2, ac = (aMin + aMax) / 2;
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(uMax - uMin, Y_RAIL - 0.02, aMax - aMin), mDeck);
+      deck.position.set(xm.e + px[0] * uc + ax[0] * ac, (Y_RAIL - 0.02) / 2, -(xm.n + px[1] * uc + ax[1] * ac));
+      deck.rotation.y = -ht; deck.receiveShadow = true; st.add(deck);
+      // 線路の両側、道路の左右に1基ずつ。竹は線路と平行に、道路の半分を覆う
+      [uMin - 1.2, uMax + 1.2].forEach(u => {
+        const q = roadAt(u), qa2 = A(q), qu = U(q);
+        [-1, 1].forEach(sd => {
+          const a = qa2 + sd * (halfA + 0.7), e = xm.e + px[0] * qu + ax[0] * a, n = xm.n + px[1] * qu + ax[1] * a;
+          barrierUnit(e, n, sd > 0 ? ht + Math.PI : ht, halfA + 0.25, rec);
+        });
+      });
+      if (label) XING_LABELS.push([label, xm]);
+    });
+  }
+  const sub = (pts, f) => pts.filter(f);
+
+  // --- 北東：国道176号の立体交差。両側の側道が地上で箕面線を踏切で渡る ---
+  // 線路の上から、南の交差点（府道と176号線）の手前まで高架のまま緩やかに降りる
+  const JCT = { e: 103.5, n: -89.25 };
+  const R176 = Path.spline(OSM.R176);
+  const va = R176.nearestS(8.62, 115.88), vt = R176.nearestS(66.5, 53.5), vj = R176.nearestS(JCT.e, JCT.n) - 9;
+  const L176 = vj - (vt + 6);                                  // 交差点側と同じ長さ・同じ傾斜で北側にも
+  const h176 = sc => 7 * smooth(vt - 6 - L176, vt - 6, sc) * (1 - smooth(vt + 6, vj, sc));
+  ribbon(R176, 7, h176, 0.13); viaduct(R176, 7, h176);
+  JUNCTION = JCT; VIADUCTS.push({ name: '176', path: R176, h: h176, w: 7, jS: R176.nearestS(JCT.e, JCT.n) });
+  VIADUCT_LABELS.push(['国道176号（立体交差）', R176.at(vt + 30), 11]);
+  // 側道：高架の両側を地上で交差点まで
+  const o1 = R176.offset(6), o2 = R176.offset(-6), west = o1.atN(-40).e < o2.atN(-40).e ? o1 : o2, east = west === o1 ? o2 : o1;
+  const nsPts = (op, list) => list.map(n => { const q = op.atN(n); return [q.e, q.n]; });
+  const sideA = Path.spline([...nsPts(west, [-82, -66, -48, -30, -16]), ...OSM.SIDE_A.slice(1)]);
+  const sideB = Path.spline([...OSM.SIDE_B.slice(0, -1), ...nsPts(east, [-4, -16, -30, -48, -66, -82])]);
+  ribbon(sideA, 4.5); ribbon(sideB, 4.5);
+  crossings(sideA, 4.5, '踏切（176号線の下・側道）'); crossings(sideB, 4.5);
+  // 東口の道：東改札の駅舎から5号線に沿って北東へ、176号線の側道へ
+  const eastExit = Path.spline(OSM.EAST_EXIT); ribbon(eastExit, 5);
+
+  // --- 南：線路をまたぐ跨線橋（線路のすぐ西と東で地上に降りる）。下の道が踏切で線路を渡る ---
+  const RS = Path.spline(OSM.RS), eTrk = C.atN(-90.5).e;
+  const LS = (JCT.e - 9) - (eTrk + 6);                          // 交差点側と同じ長さ・同じ傾斜で西側にも
+  const hS = sc => { const e = RS.at(sc).e; return 6.5 * smooth(eTrk - 10 - LS, eTrk - 10, e) * (1 - smooth(eTrk + 6, JCT.e - 9, e)); };
+  ribbon(RS, 5, hS, 0.13); viaduct(RS, 5, hS);
+  VIADUCTS.push({ name: 'RS', path: RS, h: hS, w: 5, jS: RS.nearestS(JCT.e, JCT.n) });
+  VIADUCT_LABELS.push(['跨線橋（両側とも緩やかに降りる）', RS.at(RS.nearestS(50, -89.5)), 9]);
+  const sideRS = (d, es) => { const op = RS.offset(d); return es.map(e => { const q = op.pts.reduce((m, p) => Math.abs(p.e - e) < Math.abs(m.e - e) ? p : m); return [q.e, q.n]; }); };
+  const rsN = Path.spline([...sideRS(-4.4, [-112, -98, -84, -70]), ...sub(OSM.RS_N, q => q[0] > -56 && q[0] < 46), [62, -85.3], [80, -85.6], [96, -86.6], [JCT.e - 2, -88.4]]),
+        rsS1 = Path.spline([...sideRS(4.4, [-112, -98, -84, -70]), ...sub(OSM.RS_S, q => q[0] > -56 && q[0] <= -10.5)]),
+        rsS2 = Path.spline([...sub(OSM.RS_S, q => q[0] >= 5.9 && q[0] < 46), [64, -94.4], [82, -94], [96, -92.6], [JCT.e - 2, -90.2]]);
+  ribbon(rsN, 3.6); ribbon(rsS1, 3.6); ribbon(rsS2, 3.6);
+  crossings(rsN, 5, '踏切（南・跨線橋の下）');
+  MODEL_ROADS.push([R176, 9], [RS, 7.5], [sideA, 3.2], [sideB, 3.2], [eastExit, 3.6], [rsN, 2.6], [rsS1, 2.6], [rsS2, 2.6]);
+}
+
+const CAR = 14, GAP = 0.5;
+
+// ============================================================
+//  配置ラベル
+// ============================================================
+await document.fonts.ready;
+
+// ============================================================
+//  街（段階2）：OpenStreetMap の建物・道路の位置をもとに、模型らしく作る
+// ============================================================
+const TOWN = {"B":[[5,0,113,[93.4,-47.4,90.7,-47.1,91.1,-44.1,82.1,-42.9,80.5,-54.5,90.9,-55.8,91.2,-53.1,92.7,-53.3]],[0,0,116,[98.3,39.7,98.0,39.6,97.4,40.9,96.8,41.2,90.4,38.5,89.9,36.9,92.9,30.4,94.5,31.1,95.1,30.8,99.7,32.8,100.0,33.9,99.4,35.2,99.9,35.4,99.3,37.7,99.5,38.1,98.9,39.6]],[0,0,67,[-90.2,-27.4,-87.5,-26.7,-82.0,-25.3,-84.3,-33.4,-88.9,-32.1,-91.4,-31.5]],[3,3,204,[-64.1,-11.6,-52.9,-8.7,-53.9,-5.2,-51.7,-4.7,-52.5,-1.0,-65.2,-4.0]],[0,0,525,[-42.4,-18.4,-43.3,-15.0,-35.6,-12.9,-34.0,-12.5,-32.9,-13.1,-32.3,-15.7,-33.3,-16.0]],[0,2,526,[-77.8,-24.1,-69.1,-21.8,-67.7,-26.6,-78.2,-25.7]],[0,1,527,[-61.5,-19.7,-59.6,-26.4,-62.5,-27.1,-63.1,-20.2]],[3,3,528,[-43.6,-15.4,-48.0,-16.5,-46.2,-23.3,-41.8,-22.2]],[0,3,529,[-67.7,-26.3,-69.0,-21.8,-63.6,-20.4,-63.1,-26.6]],[0,2,530,[-91.5,-31.5,-84.3,-33.5,-85.8,-39.4,-94.2,-37.1,-93.7,-35.4]],[0,4,531,[-53.3,-24.4,-54.1,-21.3,-51.5,-20.6,-52.4,-17.5,-48.2,-16.3,-46.5,-22.5]],[0,0,532,[-52.8,-17.6,-52.0,-20.4,-54.7,-21.1,-54.0,-23.8,-57.8,-24.9,-59.1,-20.5,-56.7,-19.8,-57.0,-18.8]],[0,2,123,[-37.7,-4.6,-53.1,-8.2,-53.8,-5.3,-37.0,-1.5]],[2,6,637,[120.3,-68.8,121.5,-53.6,107.0,-52.5,107.0,-52.7,106.3,-52.7,105.9,-57.8,106.1,-57.8,105.8,-62.4,106.2,-62.5,106.1,-64.7,108.3,-64.9,108.3,-65.4,107.1,-65.3,106.7,-69.6,113.8,-70.2,113.9,-68.4]],[0,0,638,[58.8,-34.9,55.4,-34.7,55.5,-34.1,51.6,-33.8,51.6,-34.4,48.9,-34.3,48.4,-41.2,47.5,-41.1,47.1,-46.5,47.4,-46.5,47.2,-49.6,44.1,-49.4,43.8,-55.1,56.5,-57.5,57.3,-48.5,57.8,-48.6]],[3,0,649,[85.2,-80.2,96.3,-79.5,95.9,-72.4,84.8,-73.0]],[0,0,660,[123.4,-109.7,123.2,-102.9,123.1,-101.2,121.0,-101.3,121.3,-109.8]],[0,0,669,[91.7,-107.5,100.3,-109.9,99.8,-98.6,96.8,-96.4,94.8,-96.4]],[0,0,670,[116.4,-70.4,107.9,-70.3,107.8,-79.3,116.3,-79.3,116.4,-73.8,117.9,-73.8,118.9,-72.8,118.0,-71.9,118.9,-71.1,118.9,-70.6,116.4,-70.6]],[0,0,123,[81.1,26.3,81.1,26.4,80.7,26.4,80.7,26.9,76.6,26.6,76.6,26.0,72.7,25.6,73.3,19.9,81.6,20.7,81.6,20.9,82.0,20.9,81.8,23.0,82.5,23.1,82.3,24.7,82.8,24.8,82.2,26.4]],[0,0,124,[84.2,18.4,84.2,16.9,81.5,16.9,81.6,18.5]],[0,0,125,[84.2,16.4,84.8,16.4,85.2,16.4,85.2,18.4,84.2,18.4,84.2,16.9]],[0,0,126,[78.4,11.8,78.4,14.5,75.1,14.5,75.1,12.9,72.5,12.9,72.5,11.8]],[0,0,127,[84.8,11.7,78.4,11.8,78.4,14.5,78.4,15.1,81.0,15.1,81.0,16.9,81.5,16.9,84.2,16.9,84.2,16.4,84.8,16.4]],[4,0,128,[85.2,11.3,72.6,11.1,72.7,6.1,73.6,6.2,76.1,4.6,76.1,4.5,83.4,4.6,83.4,6.3,85.3,6.3]],[0,0,129,[88.2,5.3,89.3,-5.7,85.9,-3.3,85.8,-2.4,88.1,-2.1,88.0,-0.9,83.4,-1.4,78.0,2.8,83.6,3.4,83.4,4.8]],[0,0,130,[109.6,-15.2,108.6,-14.2,107.4,-13.8,105.9,-13.6,104.1,-13.8,104.0,-14.7,101.5,-14.9,102.5,-25.4,108.5,-24.8,108.1,-20.6,108.4,-20.5,109.4,-15.7]],[0,0,131,[86.2,-23.7,86.1,-24.0,87.5,-24.1,87.6,-23.6,90.5,-23.9,90.9,-20.1,89.9,-20.0,89.4,-22.7,87.7,-22.6,88.1,-18.9,88.8,-18.3,89.4,-17.5,90.0,-16.4,90.4,-15.3,90.6,-14.1,90.6,-13.0,90.5,-11.6,90.2,-10.5,89.8,-9.6,89.5,-9.2,89.2,-9.0,88.9,-9.0,88.0,-8.8,88.1,-7.1,84.6,-6.7,84.5,-8.5,83.2,-8.3,81.4,-23.1]],[2,0,132,[83.9,-27.8,78.9,-27.2,78.5,-30.9,73.9,-30.3,73.8,-31.5,73.6,-31.5,72.7,-38.2,82.3,-39.4,82.1,-41.6,90.9,-42.6,92.4,-30.6,91.5,-30.5,91.7,-28.9,91.3,-28.8,91.3,-28.4,91.0,-28.4,91.0,-28.0,88.6,-27.7,88.3,-29.7,83.7,-29.2]],[0,0,950,[-22.7,-97.5,-13.7,-97.5,-13.7,-100.7,-14.9,-100.6,-14.9,-101.8,-13.3,-101.8,-13.3,-100.3,-12.0,-100.3,-12.0,-102.0,-11.7,-102.0,-11.7,-103.7,-13.8,-103.7,-13.8,-105.7,-22.7,-105.7]],[1,0,951,[-1.2,-109.5,-3.1,-97.4,-4.8,-97.4,-6.7,-99.6,-6.4,-102.2,-7.1,-102.3,-6.2,-110.1]],[0,0,955,[-28.0,-80.3,-15.9,-78.0,-18.1,-83.1,-18.8,-83.2,-18.7,-84.3,-27.2,-84.3]],[0,0,956,[-28.9,-75.8,-16.8,-73.5,-16.0,-77.6,-28.1,-79.9]],[0,0,957,[-28.8,-75.4,-29.7,-70.7,-19.1,-68.8,-17.7,-69.5,-17.0,-73.2]],[0,0,958,[-30.4,-58.8,-30.2,-59.8,-34.2,-60.6,-33.0,-66.4,-27.2,-65.2,-26.7,-67.2,-23.6,-66.5,-23.7,-66.4,-19.0,-65.5,-20.7,-57.2,-26.8,-58.4,-26.0,-62.3,-27.6,-62.6,-28.2,-59.4,-28.3,-59.4,-28.5,-58.4]],[0,0,959,[-35.5,-55.5,-22.9,-52.9,-22.7,-53.8,-22.2,-53.7,-21.6,-56.5,-26.5,-57.5,-26.9,-55.7,-28.4,-56.1,-28.1,-57.8,-34.7,-59.1]],[0,0,960,[-36.3,-51.9,-25.0,-49.8,-24.9,-50.6,-24.4,-50.5,-24.0,-52.7,-33.3,-54.5,-33.4,-53.8,-35.8,-54.2]],[0,0,961,[-27.5,-34.3,-39.0,-37.3,-40.1,-33.1,-28.6,-30.1]],[0,0,962,[-36.5,-40.8,-26.4,-38.2,-27.5,-34.3,-39.0,-37.3,-38.5,-39.1,-37.0,-38.7]],[0,0,963,[-24.2,-46.9,-36.3,-49.2,-38.4,-41.3,-36.5,-40.8,-26.4,-38.2]],[0,0,964,[-29.4,-24.4,-29.9,-22.4,-30.1,-22.5,-30.7,-20.0,-42.7,-23.0,-41.4,-28.0,-41.6,-28.1,-40.6,-32.0,-34.6,-30.5,-34.7,-30.2,-30.0,-29.0,-30.1,-28.8,-28.7,-28.4,-29.6,-25.2,-29.4,-25.1,-29.6,-24.5]],[0,0,965,[-40.6,-21.9,-41.6,-18.3,-32.3,-15.8,-31.4,-19.4]],[0,0,966,[-29.4,-9.2,-30.0,-6.8,-22.9,-5.0,-22.3,-7.4]],[0,0,967,[-27.4,-17.7,-29.4,-9.8,-24.3,-8.5,-24.4,-8.2,-22.4,-7.7,-21.6,-10.8,-22.5,-11.0,-22.1,-12.4,-21.6,-12.3,-20.7,-16.1]],[0,0,968,[-19.2,-21.6,-26.1,-23.4,-27.5,-18.1,-20.5,-16.3]],[0,0,969,[-16.0,-25.2,-16.3,-23.4,-14.9,-23.2,-14.7,-25.0]],[0,0,970,[-19.9,-28.5,-20.4,-25.4,-16.9,-24.7,-16.3,-27.8]],[0,0,971,[-12.8,-51.2,-11.0,-50.7,-11.9,-46.4,-13.8,-46.9]],[0,0,973,[-16.7,-54.6,-14.8,-61.3,-11.0,-60.3,-12.9,-53.6]],[0,0,974,[-6.6,-73.8,-7.9,-65.7,-13.2,-66.5,-11.0,-74.8]],[0,0,976,[-6.9,-74.3,-5.3,-84.6,-6.8,-84.9,-9.6,-82.7,-10.9,-74.9]],[2,0,977,[16.9,-107.1,15.8,-99.2,16.0,-99.2,15.8,-97.6,15.5,-97.6,15.5,-97.1,8.3,-98.1,9.7,-108.0,10.0,-110.2,15.8,-109.4,15.8,-109.7,17.3,-109.5,17.1,-107.9,17.0,-107.1]],[1,0,978,[21.1,-108.7,24.8,-108.2,23.5,-97.5,20.5,-97.9,20.4,-97.1,15.9,-97.7,17.1,-107.9,17.8,-107.8,18.0,-108.8,21.1,-108.4]],[3,0,979,[31.1,-104.0,31.2,-104.0,31.6,-107.1,37.4,-106.4,36.9,-102.1,37.1,-102.1,36.6,-98.0,36.0,-98.0,34.4,-96.8,30.3,-97.4,30.8,-101.0,30.7,-101.0]],[0,0,980,[46.9,-101.2,46.9,-100.5,44.0,-98.3,44.0,-101.4]],[0,0,981,[44.0,-101.4,46.9,-101.2,47.4,-101.2,47.8,-105.9,48.5,-105.9,48.6,-106.9,49.0,-106.8,49.4,-112.0,43.5,-112.5,43.0,-106.5,41.2,-106.6,41.0,-104.2,41.8,-104.1,41.6,-101.8,39.1,-102.0,38.2,-96.5,42.0,-96.5,42.0,-97.2,43.9,-97.2,44.0,-98.3]],[0,0,982,[44.5,-96.3,50.9,-96.3,50.9,-96.5,53.2,-96.5,53.2,-97.2,53.9,-97.2,53.9,-98.9,54.6,-98.9,54.6,-100.2,53.7,-100.2,53.7,-100.4,51.2,-100.4,51.2,-100.7,47.8,-100.7,44.5,-98.0]],[3,0,983,[4.0,-84.1,13.3,-84.1,14.4,-82.8,14.0,-75.7,3.0,-75.7,3.5,-82.3,3.9,-82.3]],[0,0,984,[27.4,-82.9,27.0,-74.6,17.8,-75.1,18.2,-82.1,19.3,-83.3]],[0,0,985,[27.0,-74.6,30.4,-74.4,30.9,-83.1,27.4,-83.2,27.4,-82.9]],[2,0,986,[35.8,-74.4,30.8,-74.7,31.3,-83.0,31.2,-83.0,31.2,-84.4,35.2,-84.2,35.2,-83.4,36.3,-83.4]],[0,0,987,[36.5,-79.8,36.2,-79.8,36.5,-82.6,36.6,-82.6,36.7,-83.0,39.7,-82.9,39.7,-82.3,41.5,-82.1,41.0,-76.1,41.2,-76.1,41.0,-74.3,36.0,-74.7,36.2,-76.6,36.3,-76.6]],[0,0,988,[53.6,-73.2,53.5,-72.1,54.2,-72.0,54.1,-70.0,54.8,-70.0,54.5,-66.5,49.4,-66.9,49.8,-73.4]],[0,0,989,[59.1,-70.2,57.9,-69.9,58.2,-68.8,59.4,-69.2]],[0,0,990,[59.6,-71.7,57.4,-71.1,57.6,-70.3,59.8,-70.9]],[0,0,991,[65.6,-72.6,66.9,-72.6,66.9,-73.9,65.6,-73.9]],[2,0,992,[64.8,-82.8,53.1,-82.9,53.0,-80.3,53.8,-80.3,53.7,-77.6,55.4,-77.5,55.4,-77.0,57.7,-76.9,57.7,-75.0,57.0,-75.0,57.0,-73.0,57.7,-73.0,57.7,-71.9,60.1,-71.9,60.1,-71.6,62.6,-71.5,62.6,-71.9,64.7,-71.8,64.7,-73.2,65.3,-73.2,65.3,-75.1,64.7,-75.1]],[1,0,993,[72.4,-74.2,68.5,-74.3,68.6,-75.2,66.5,-75.3,66.4,-77.2,66.2,-77.2,65.5,-82.6,65.6,-82.6,65.7,-83.5,72.6,-83.3,72.6,-82.2,72.5,-82.2]],[0,0,994,[58.8,-100.1,59.1,-100.1,59.1,-100.9,59.4,-101.5,62.2,-102.4,62.3,-100.0,62.4,-100.0,62.4,-96.5,56.8,-96.6,56.8,-98.7]],[0,0,995,[64.0,-96.8,62.6,-96.8,62.6,-99.3,64.0,-99.3]],[2,0,0,[80.0,-104.2,80.0,-105.2,81.5,-105.2,81.6,-104.2,81.6,-104.2,81.6,-103.6,81.8,-103.6,81.8,-96.6,65.1,-96.6,65.1,-99.6,64.4,-99.6,64.3,-100.2,62.4,-100.2,62.4,-101.7,64.3,-101.7,64.3,-101.8,65.1,-101.8,65.1,-102.5,68.0,-102.5,68.0,-103.1,73.1,-103.1,73.1,-103.6,73.2,-103.6,73.2,-104.2]],[0,0,3,[59.6,28.7,60.0,28.3,59.0,27.4,58.6,27.8]],[0,0,4,[68.3,35.4,66.9,36.7,65.8,35.7,67.2,34.3]],[0,0,5,[66.6,34.5,60.0,28.5,56.8,32.0,61.5,36.2,61.6,36.0,62.9,37.1,64.6,35.2,65.3,35.9]],[3,0,6,[49.6,60.8,49.7,60.7,44.6,56.3,48.6,51.7,55.4,57.6,52.6,60.8,53.1,61.3,52.5,61.7,51.0,61.9]],[0,0,7,[62.5,10.6,69.0,10.0,69.0,8.5,70.4,8.4,70.5,10.2,69.6,10.3,71.5,31.0,64.4,31.6,64.3,29.6,62.7,29.7,62.3,24.2,63.7,24.0,63.6,22.3,62.6,22.4,62.5,21.3,62.4,18.7,63.1,18.6,63.3,21.2,63.5,21.2]],[0,0,8,[73.3,40.8,71.3,43.3,69.2,44.0,64.5,39.5,66.0,37.9,69.0,40.7,70.6,38.8]],[1,0,9,[73.4,40.7,70.6,38.6,74.2,34.0,77.0,36.0]],[0,0,10,[74.4,31.7,75.9,29.1,73.3,27.7,74.1,26.5,80.8,27.2,81.0,26.9,82.4,27.7,77.5,35.2]],[1,0,747,[120.0,6.8,119.9,7.4,120.6,7.5,120.4,10.5,122.3,10.6,122.2,13.1,123.9,13.2,123.5,18.4,115.4,17.9,116.1,7.2,116.9,7.2,117.0,6.6]],[2,0,748,[115.9,-5.3,115.4,-9.0,112.4,-8.6,111.8,-13.0,113.4,-13.2,113.1,-15.2,111.5,-14.9,110.9,-19.4,112.6,-19.6,112.6,-19.3,122.1,-20.6,123.5,-10.0,122.9,-9.9,123.5,-5.8,116.5,-4.8]],[3,0,569,[-64.8,-11.6,-66.0,-2.4,-81.9,1.7,-82.6,-0.7,-83.5,-0.5,-83.9,-2.1,-82.9,-2.3,-82.8,-2.0,-81.0,-2.5,-81.8,-5.3,-84.6,-4.5,-85.1,-6.0,-85.3,-5.9,-85.6,-6.9,-84.8,-7.3,-87.4,-14.2,-87.5,-14.2,-87.9,-14.3,-88.4,-14.8,-88.9,-16.0,-89.1,-16.9,-89.0,-17.5,-88.8,-17.7,-88.3,-18.1,-87.7,-18.2,-87.2,-18.1,-86.6,-17.7,-86.5,-17.5,-73.6,-13.9,-73.2,-15.2,-64.6,-12.9]],[0,0,16,[22.3,-19.5,28.0,-22.5,31.9,-15.0,34.2,-16.1,35.5,-13.5,33.3,-12.4,34.5,-10.1,28.9,-7.1,28.7,-7.6,28.0,-7.2,27.1,-9.0,27.7,-9.3]],[0,0,20,[20.4,29.5,27.4,34.2,35.6,39.6,34.7,41.4,28.2,37.8,19.0,31.2]],[0,0,25,[11.8,21.9,20.4,29.5,19.0,31.2,16.8,33.9,6.5,25.2]],[0,0,26,[-2.4,25.7,-2.1,23.5,1.2,19.2,7.6,18.0,11.8,21.9,6.5,25.2,2.7,26.5]],[0,0,32,[3.1,-0.9,-0.1,-0.9,0.3,-3.1,-1.7,-3.4,-1.1,-8.1,0.3,-17.6,6.9,-16.1,8.8,-10.2,8.7,-6.4]],[0,0,490,[58.7,24.4,56.0,24.5,56.0,23.2,55.0,23.3,54.9,20.4,55.9,20.3,55.9,18.9,58.5,18.9,58.5,18.6,61.2,18.4,61.3,21.3,62.0,21.3,62.1,25.3,61.2,25.3,61.2,24.6,58.8,24.7]],[0,0,578,[79.5,-117.2,71.5,-115.6,69.5,-126.0,72.5,-126.6,72.9,-124.7,73.8,-124.9,75.8,-122.6,76.3,-120.2,78.9,-120.6]],[0,0,581,[-22.6,-119.5,-21.9,-119.5,-21.7,-122.4,-19.0,-122.2,-19.0,-122.1,-18.9,-122.1,-18.9,-122.2,-9.7,-121.6,-9.9,-118.5,-9.5,-118.5,-9.5,-118.3,-9.0,-118.3,-9.2,-115.0,-10.2,-115.1,-10.2,-115.3,-16.7,-115.7,-16.7,-115.9,-21.6,-116.2,-21.6,-116.4,-22.7,-116.4,-22.6,-117.8,-22.7,-117.8]],[0,0,643,[10.6,-111.4,12.2,-122.1,14.8,-121.7,13.1,-111.0]],[0,0,707,[81.7,-14.9,81.1,-14.8,81.4,-13.0,78.9,-12.6,78.9,-12.0,78.9,-12.0,75.3,-11.5,75.4,-10.4,73.2,-10.1,72.8,-14.4,74.0,-14.5,73.9,-15.4,74.4,-15.5,74.2,-16.8,73.7,-16.7,73.3,-20.7,76.7,-21.1,77.0,-17.8,78.2,-18.0,78.4,-16.9,81.1,-17.3,81.1,-17.0,81.4,-17.1]],[0,0,737,[113.6,0.3,115.1,0.5,115.0,1.7,113.5,1.6]],[0,0,750,[-86.3,-11.1,-86.7,-11.0,-86.6,-10.8,-87.7,-10.4,-87.7,-10.6,-88.0,-10.5,-89.2,-13.5,-87.5,-14.2]],[0,0,760,[13.3,-66.8,12.5,-66.9,12.5,-66.8,4.1,-67.4,4.6,-75.4,10.1,-75.0,10.1,-75.1,13.9,-74.9]],[0,0,762,[127.0,-67.9,125.8,-67.7,125.4,-69.7,126.7,-69.9]],[0,0,833,[84.2,-73.0,86.1,-72.8,86.0,-72.1,84.2,-72.3]],[0,0,863,[-46.2,-74.9,-44.2,-85.8,-41.0,-85.2,-42.9,-74.3]],[0,0,865,[-6.0,-118.3,0.3,-118.0,0.2,-115.2,-0.1,-115.2,-0.2,-114.0,-0.9,-114.0,-0.9,-114.0,-5.6,-114.2,-5.6,-114.4,-6.1,-114.4]],[3,0,876,[-91.3,-70.5,-91.2,-71.0,-92.9,-72.4,-93.0,-72.1,-102.7,-79.7,-102.4,-81.3,-88.7,-78.8,-88.2,-78.7,-90.1,-69.5]],[1,0,890,[63.9,-33.6,63.9,-33.8,63.6,-33.8,63.4,-38.1,63.6,-38.1,63.6,-38.4,72.2,-38.9,72.5,-34.1]],[1,0,918,[29.1,-70.3,29.3,-73.7,30.7,-73.7,30.7,-74.1,39.2,-73.6,39.0,-69.8]],[0,0,926,[-40.6,-84.3,-39.6,-84.2,-39.3,-84.5,-38.8,-84.6,-33.3,-83.6,-33.2,-84.1,-32.9,-84.3,-27.6,-83.3,-29.9,-71.1,-42.6,-73.5]],[0,0,982,[77.5,-104.4,76.3,-104.4,76.3,-105.8,77.5,-105.8]],[0,0,15,[-48.8,2.4,-46.8,3.3,-46.8,3.1,-41.7,5.5,-44.8,11.7,-50.9,9.7]],[0,0,57,[-15.0,-36.0,-13.6,-35.8,-13.9,-34.0,-13.8,-34.0,-14.4,-29.7,-18.8,-30.3,-18.2,-34.6,-15.2,-34.2]],[1,0,69,[18.3,-65.5,28.0,-64.9,27.5,-57.0,17.7,-57.6,18.0,-61.8,17.5,-61.8,17.7,-65.1,18.3,-65.0]],[0,0,73,[111.5,26.0,113.6,26.2,113.4,27.9,111.3,27.7]],[0,0,102,[-99.2,-14.1,-105.1,-14.9,-104.6,-18.2,-104.5,-18.2,-104.4,-18.8,-104.3,-18.8,-104.0,-20.8,-104.3,-20.9,-104.1,-22.8,-98.1,-21.0]],[0,0,110,[-106.7,-8.9,-105.2,-8.5,-105.0,-9.4,-102.6,-8.9,-102.9,-7.1,-103.4,-7.2,-103.8,-5.1,-103.4,-5.0,-104.6,0.2,-104.6,0.2,-104.7,0.6,-107.3,0.1,-107.2,-0.4,-108.5,-0.7]],[1,0,130,[-107.0,-7.7,-108.5,-1.0,-110.0,-1.4,-110.2,-0.5,-112.4,-1.1,-112.3,-1.5,-116.4,-2.5,-116.3,-3.1,-115.9,-3.1,-114.5,-9.5]],[0,0,140,[-108.1,24.4,-112.2,24.5,-112.2,20.7,-108.1,20.6]],[0,0,156,[50.8,-113.9,46.9,-114.0,44.7,-114.1,44.8,-118.1,46.3,-118.0,46.4,-120.6,45.4,-120.6,45.5,-123.8,45.7,-123.8,48.3,-123.7,48.4,-125.7,56.7,-125.4,56.7,-123.9,60.5,-123.8,60.5,-123.3,61.0,-123.3,60.9,-118.6,56.7,-118.7,56.6,-116.4,56.3,-116.4,56.2,-115.0,52.2,-115.1,52.2,-115.6,50.8,-115.6]],[0,0,161,[68.3,-16.6,71.8,-16.8,72.0,-14.6,68.5,-14.4]],[0,0,199,[10.7,-52.0,12.3,-51.9,12.2,-49.3,10.6,-49.4]],[2,0,208,[-112.0,5.8,-99.3,6.2,-99.5,12.7,-112.3,12.2]],[0,0,236,[104.3,20.5,113.7,21.6,113.3,25.3,103.9,24.2]],[0,0,252,[86.7,-64.2,83.8,-63.9,83.8,-64.2,79.6,-63.6,79.4,-64.9,78.8,-64.9,78.3,-69.3,83.0,-70.0,82.9,-70.6,85.8,-71.0]],[0,0,259,[-0.9,-113.8,-0.9,-113.8,-0.5,-113.7,-0.6,-111.4,-1.0,-111.4,-1.1,-110.0,-6.2,-110.2,-6.1,-110.5,-6.0,-110.5,-5.9,-112.2,-5.6,-112.2,-5.6,-114.0]],[3,0,265,[-23.5,-98.8,-32.5,-99.1,-32.2,-108.2,-23.2,-107.9]],[0,0,267,[-108.8,-90.2,-110.3,-90.1,-110.8,-97.8,-109.3,-97.9]],[0,0,271,[-84.0,7.5,-83.6,10.9,-82.8,10.8,-82.3,14.4,-83.3,14.5,-83.2,15.1,-87.7,15.6,-87.8,15.1,-87.9,15.1,-88.5,10.0,-88.7,10.0,-88.1,15.7,-95.0,16.5,-95.5,12.1,-95.7,12.1,-96.2,8.1,-95.3,8.0,-95.3,7.3,-92.4,7.0,-92.5,6.8,-92.4,6.8,-92.6,5.4,-89.9,5.2,-89.8,6.5,-89.7,6.5,-89.6,7.3,-89.5,7.3,-89.3,8.4,-89.3,8.4,-89.6,5.7,-89.0,5.6,-89.1,5.5,-86.2,5.1,-85.9,7.7]],[0,0,293,[-60.3,28.0,-60.7,29.9,-64.7,29.1,-63.9,25.5,-60.0,26.4,-59.9,26.2,-64.7,25.1,-64.5,24.3,-65.1,21.3,-65.1,21.3,-64.8,20.0,-58.2,21.6,-57.6,19.9,-54.8,20.6,-52.4,20.7,-51.8,19.4,-50.5,19.9,-50.4,19.8,-47.9,20.8,-49.7,25.4,-49.5,25.4,-50.7,28.6,-50.9,28.6,-52.0,31.3,-52.1,31.2,-52.7,32.9,-59.2,30.4,-58.5,28.7]],[1,0,319,[-46.3,-77.3,-46.9,-74.1,-50.4,-74.7,-49.8,-78.0,-49.7,-78.0,-48.3,-85.4,-45.1,-84.8,-46.5,-77.3]],[0,0,345,[60.1,-19.5,60.9,-10.0,55.0,-9.5,54.9,-10.2,48.7,-9.6,48.7,-9.8,48.2,-9.8,48.0,-12.0,47.6,-16.8,54.3,-17.4,54.2,-19.0]],[0,0,379,[-98.9,16.3,-102.3,16.2,-102.3,17.0,-108.2,16.9,-108.1,12.9,-106.5,13.0,-106.5,13.2,-98.8,13.4]],[0,0,382,[-87.0,24.4,-86.4,28.8,-93.9,29.7,-94.4,25.4]],[0,0,392,[27.5,-38.4,27.7,-38.4,27.6,-37.0,27.5,-31.8,30.2,-31.9,30.2,-29.4,27.3,-29.3,27.3,-30.4,24.1,-30.6,24.2,-33.2,23.5,-33.3,23.5,-31.4,19.6,-31.5,19.9,-37.5,19.8,-37.5,19.9,-39.3,19.8,-39.3,19.9,-40.1,21.1,-40.1,21.1,-40.0,21.7,-40.0,21.7,-39.4,23.6,-39.3,23.6,-38.7,23.8,-38.7,23.8,-38.5,24.0,-38.5,24.0,-39.1,27.6,-38.9]],[0,0,408,[-99.8,-101.3,-90.4,-96.6,-93.1,-82.9,-102.9,-84.8,-103.0,-86.3,-102.8,-86.3,-102.1,-96.6,-102.1,-96.6,-102.0,-98.1,-102.2,-98.1,-102.2,-99.2,-102.0,-100.6,-101.9,-101.2,-101.6,-101.5,-101.5,-101.6,-101.2,-101.6,-101.0,-101.6,-100.7,-101.6,-100.4,-101.5]],[0,0,435,[94.1,-96.4,93.6,-96.1,86.3,-96.7,85.5,-105.9,91.4,-107.5,94.3,-97.2]],[0,0,452,[-115.7,24.8,-115.4,23.5,-116.2,23.3,-115.5,21.2,-114.8,21.4,-114.5,20.5,-112.7,21.0,-112.1,25.9]],[3,0,461,[101.3,-3.3,101.3,-3.1,100.0,-3.2,100.7,-10.0,102.0,-9.9,102.0,-9.2,102.5,-9.2,111.3,-5.0,114.1,-3.2,113.9,-2.2]],[1,0,464,[78.4,-107.5,74.6,-106.7,74.6,-106.8,71.9,-106.2,71.7,-107.4,70.1,-107.1,68.6,-114.1,73.3,-115.1,73.4,-114.9,77.5,-115.8,77.6,-115.5,79.4,-116.0,80.8,-109.6,81.3,-109.5,81.0,-107.5]],[0,0,500,[7.7,-57.2,12.7,-56.9,12.4,-52.9,11.1,-53.0,11.1,-52.4,7.9,-52.6,8.0,-53.2,7.5,-53.3]],[1,0,556,[-118.4,21.9,-121.3,21.0,-121.6,22.0,-125.4,20.9,-122.5,10.9,-121.4,11.2,-121.4,11.2,-119.1,11.8,-119.0,11.6,-116.2,12.5,-116.3,12.8,-115.2,13.2,-115.2,13.4,-114.9,13.5,-116.6,19.5,-116.9,19.4,-117.0,19.6,-117.6,19.4,-118.0,20.8,-118.1,20.8]],[0,0,571,[19.4,-30.8,22.2,-30.1,21.6,-27.9,18.9,-28.6]],[0,0,606,[63.2,-59.9,63.6,-56.2,61.5,-55.9,61.0,-59.7]],[0,0,608,[42.7,-114.3,42.5,-113.2,41.7,-113.4,41.8,-114.4]],[0,0,628,[39.9,5.3,39.4,7.4,35.0,6.4,35.5,4.3,35.6,4.3,35.7,4.1,39.9,5.2,39.8,5.3]],[0,0,694,[87.9,6.7,88.5,6.8,87.8,10.6,87.2,10.5]],[0,0,708,[-93.9,-57.2,-94.1,-58.6,-95.7,-58.4,-96.0,-60.5,-97.5,-60.3,-97.9,-64.0,-92.5,-64.6,-92.5,-64.7,-90.9,-64.9,-90.3,-59.6,-90.1,-59.6,-89.7,-57.2]],[1,0,737,[28.1,-41.9,34.9,-41.6,34.5,-32.1,27.7,-32.4]],[1,0,742,[76.5,-61.0,71.2,-60.3,69.9,-69.2,75.3,-69.9]],[0,0,746,[-16.7,-44.8,-12.3,-44.2,-13.6,-35.8,-17.9,-36.5]],[0,0,753,[61.0,13.3,59.6,14.7,61.1,16.1,59.1,18.1,57.6,16.7,55.4,19.0,55.0,18.6,53.4,20.3,50.1,17.1,58.7,8.2,60.3,9.9,59.5,10.7,61.0,12.2,60.5,12.8]],[0,0,783,[88.1,-28.2,85.1,-27.9,84.9,-29.3,88.0,-29.6]],[2,0,820,[-44.6,-69.4,-33.1,-66.8,-34.6,-60.3,-46.6,-63.0,-46.2,-64.8,-45.7,-64.7]],[1,0,828,[-10.5,-109.9,-10.7,-108.6,-10.4,-108.6,-10.7,-106.4,-23.2,-108.2,-22.7,-111.0,-21.7,-111.6,-11.2,-110.2,-11.3,-110.0]],[0,0,835,[34.9,-33.1,41.0,-33.6,41.5,-27.7,43.3,-27.8,43.8,-20.6,34.0,-19.9,33.4,-27.1,35.3,-27.2]],[0,0,939,[-65.2,-111.4,-65.2,-111.9,-62.9,-111.7,-63.0,-111.0,-60.4,-110.5,-61.5,-104.4,-66.9,-105.3,-65.8,-111.5]],[0,0,989,[49.8,-58.2,49.6,-56.3,46.2,-56.8,46.5,-58.6,44.2,-58.9,45.1,-64.4,47.5,-64.0,47.6,-64.7,50.9,-64.2,50.8,-63.2,51.9,-63.0,51.0,-58.0]],[0,0,23,[-78.4,-76.8,-81.1,-62.9,-81.4,-63.0,-81.9,-60.1,-82.4,-60.2,-82.5,-59.8,-86.9,-60.7,-86.7,-61.7,-87.1,-61.8,-87.2,-61.4,-88.4,-61.8,-88.6,-62.3,-87.5,-68.0,-86.8,-67.8,-86.3,-70.9,-87.1,-71.1,-87.1,-71.3,-87.7,-71.4,-86.4,-78.8,-78.5,-77.3,-78.6,-76.8]],[2,0,61,[21.8,-120.0,20.9,-114.6,20.8,-114.6,20.6,-113.5,20.7,-113.5,20.3,-111.2,20.3,-111.2,20.1,-110.2,19.4,-110.3,19.4,-110.0,16.0,-110.6,16.5,-114.1,16.6,-114.1,17.9,-122.0,18.3,-122.0,18.4,-122.7,21.6,-122.2,21.4,-121.5,21.9,-121.4,21.7,-120.0]],[3,0,79,[94.8,30.2,95.0,26.9,95.4,27.0,96.5,22.2,103.0,22.6,102.9,24.1,101.8,24.0,101.1,30.7]],[1,0,196,[38.1,-60.2,40.0,-60.1,39.8,-55.6,37.9,-55.7,37.9,-55.9,29.6,-56.4,29.8,-60.6,38.1,-60.1]],[1,0,214,[-118.6,-17.4,-118.6,-17.4,-118.9,-15.2,-122.6,-16.8,-122.5,-17.3,-124.6,-17.7,-122.7,-29.0,-122.1,-28.9,-122.0,-29.0,-122.5,-29.1,-122.5,-29.5,-122.5,-29.5,-122.3,-30.8,-119.2,-30.2,-119.2,-30.0,-119.1,-30.0,-119.3,-29.1,-116.8,-28.7,-116.8,-28.6,-116.7,-28.6]],[0,0,224,[9.2,-63.5,12.9,-63.4,12.8,-60.7,9.1,-60.9]],[0,0,226,[79.3,-53.7,79.4,-53.7,79.5,-53.1,79.6,-53.1,80.8,-42.8,80.7,-42.7,80.8,-42.1,73.5,-41.2,73.5,-41.9,73.3,-41.9,72.1,-52.1,71.9,-52.1,71.7,-54.1,74.3,-54.4,74.4,-53.2,74.7,-53.2,74.7,-52.5,77.0,-52.7,76.9,-53.4,77.0,-53.4,76.9,-54.7,79.2,-54.9]],[0,0,243,[84.9,-118.1,91.7,-120.0,94.8,-109.1,86.8,-106.8,85.9,-108.9,85.4,-110.6,84.2,-117.8,84.9,-118.0]],[0,0,253,[-18.9,-125.1,-9.5,-124.4,-9.7,-121.6,-19.1,-122.3]],[0,0,293,[27.3,-55.9,27.0,-47.3,18.8,-47.6,18.4,-47.4,17.7,-47.5,17.1,-47.9,17.0,-48.4,16.9,-49.0,17.3,-49.5,17.3,-50.0,16.3,-50.0,16.3,-50.3,16.3,-50.9,16.3,-51.4,16.3,-51.7,17.4,-51.7,17.4,-52.6,18.3,-52.6,18.3,-52.7,16.4,-52.8,16.5,-53.8,16.4,-56.5,17.6,-56.5,17.6,-56.4,19.0,-56.4,19.0,-56.2]],[3,0,296,[-51.4,-71.7,-45.8,-70.6,-47.0,-64.6,-52.6,-65.7]],[1,0,297,[73.7,2.7,70.8,2.9,70.8,4.6,67.9,4.9,67.9,4.7,65.2,4.8,65.1,3.3,64.9,3.4,64.5,-2.4,65.9,-2.5,71.4,-2.9,71.4,-2.9,73.3,-3.0,73.7,2.7]],[0,0,342,[-64.9,18.4,-63.0,18.7,-63.1,19.9,-64.9,19.7]],[0,0,344,[-90.1,-57.2,-88.5,-49.9,-97.6,-50.0,-97.7,-57.1]],[0,0,379,[125.0,-2.0,123.8,-1.7,123.4,-3.1,124.6,-3.4]],[0,0,435,[-91.1,-90.1,-86.9,-89.3,-87.1,-88.7,-86.9,-88.7,-86.8,-89.2,-82.8,-88.4,-84.2,-81.6,-92.5,-83.2]],[0,0,449,[-33.0,-98.0,-33.2,-98.0,-33.2,-97.8,-37.9,-98.0,-37.7,-108.6,-32.7,-108.5]],[2,0,508,[101.9,-119.3,101.0,-119.1,101.5,-117.0,100.5,-116.7,101.3,-113.9,100.7,-110.7,94.8,-109.1,91.9,-119.6,101.2,-122.1]],[0,0,527,[38.0,-60.6,29.4,-61.1,29.6,-65.1,38.2,-64.7,38.2,-64.2,38.8,-64.2,38.6,-60.9,38.0,-61.0]],[0,0,550,[44.6,-119.7,44.4,-117.6,43.0,-117.7,43.0,-119.8]],[0,0,571,[-23.0,-0.6,-31.7,-2.3,-30.6,-6.7,-21.9,-4.5,-22.5,-0.8]],[3,0,605,[103.1,5.6,114.7,6.7,114.0,13.7,103.3,12.7,103.3,13.1,102.1,13.0,102.3,10.5,101.9,9.7,101.7,8.7,102.0,7.8,102.6,7.0,102.7,6.1,103.1,6.2]],[2,0,662,[55.7,-101.5,49.3,-102.0,49.8,-108.4,50.6,-108.4,50.9,-113.8,51.4,-113.8,51.5,-115.1,52.2,-115.1,56.2,-115.0,57.3,-114.9,56.6,-102.9,55.8,-102.9]],[3,0,698,[102.0,-2.9,112.5,-2.0,112.2,1.9,101.7,1.0]],[2,0,715,[28.8,-74.0,28.2,-65.7,19.2,-66.3,19.1,-66.1,18.1,-66.2,17.4,-67.0,17.9,-73.9,18.0,-74.0,18.0,-74.1,18.1,-74.3,18.2,-74.5,18.9,-74.8,19.8,-74.8]],[0,0,744,[-104.1,-83.4,-104.6,-82.0,-109.0,-83.6,-108.5,-85.0]],[0,0,751,[-66.8,20.2,-65.3,20.1,-65.0,23.5,-73.1,24.2,-73.3,20.6,-74.5,20.7,-74.6,19.0,-74.1,19.0,-74.1,17.2,-74.4,17.2,-74.4,16.9,-75.2,17.0,-75.4,15.0,-76.3,15.1,-76.4,12.9,-75.8,12.9,-75.9,10.8,-74.9,10.7,-74.9,10.7,-74.4,10.7,-74.4,10.5,-68.1,10.0,-68.0,10.3,-67.4,10.3,-67.2,13.7,-67.0,13.7,-66.8,16.5,-67.0,16.5]],[0,0,755,[-47.0,-62.3,-34.9,-59.8,-36.5,-52.3,-48.6,-54.7]],[0,0,781,[42.7,19.1,41.4,20.0,40.0,17.9,41.4,17.1]],[1,0,785,[-108.3,20.3,-112.0,20.6,-112.3,14.3,-111.7,14.2,-111.7,13.0,-108.7,12.9]],[3,0,800,[-116.6,-48.4,-114.4,-49.6,-114.4,-49.9,-96.4,-49.9,-96.2,-36.2,-97.7,-34.5,-101.0,-33.6,-104.5,-33.6,-105.5,-33.9,-106.0,-32.8,-106.7,-33.2,-106.3,-34.1,-107.4,-34.3,-110.4,-37.1,-111.0,-38.6,-112.9,-37.8,-114.2,-37.3,-115.8,-41.5,-114.5,-41.9,-112.6,-42.7,-113.2,-44.8,-115.5,-44.1]],[0,0,806,[-85.2,-5.6,-85.6,-5.4,-87.2,-9.0,-86.7,-9.2]],[0,0,821,[26.0,-121.2,26.0,-121.7,29.0,-121.2,28.8,-120.0,28.9,-120.0,27.2,-108.6,21.4,-109.5,22.0,-113.3,23.7,-113.1,24.0,-115.2,23.0,-115.4,23.3,-117.7,22.7,-117.8,23.3,-121.6]],[3,0,825,[114.0,6.1,109.2,5.7,109.2,6.0,101.5,5.4,100.5,4.4,100.6,3.3,101.4,2.6,104.0,2.8,104.1,1.4,109.5,1.9,109.5,2.2,115.0,2.6,114.8,5.3,114.0,5.2]],[0,0,843,[43.4,13.4,47.7,9.0,50.4,11.6,46.0,16.0,45.4,15.4,45.1,15.7,43.3,14.0,43.6,13.6]],[0,0,846,[-27.9,23.8,-28.5,27.1,-39.0,25.3,-39.1,25.5,-43.8,23.8,-42.5,20.2,-38.0,21.9,-38.0,21.8,-32.5,23.0]],[3,0,856,[-5.1,-122.1,-5.0,-123.3,-5.4,-123.5,-5.3,-124.6,-4.9,-124.8,-4.9,-125.1,0.8,-124.8,0.6,-121.7]],[3,0,897,[0.1,-118.1,-5.4,-118.6,-5.2,-122.0,0.4,-121.5]],[0,0,930,[-36.2,-125.2,-32.7,-125.1,-32.8,-120.2,-36.4,-120.3]],[0,0,984,[-99.4,28.5,-107.4,28.2,-107.3,24.2,-107.1,24.2,-107.1,23.9,-104.9,24.0,-104.9,24.3,-100.7,24.4,-100.7,24.6,-99.5,24.7,-99.5,25.1,-99.3,25.1]],[0,0,990,[7.1,-58.3,6.1,-58.1,4.6,-64.1,5.6,-64.4]],[0,0,50,[-58.9,-53.6,-56.9,-53.3,-57.4,-50.4,-59.4,-50.7]],[0,0,120,[22.6,-30.2,31.2,-28.1,30.0,-23.2,29.7,-23.3,29.7,-23.0,28.5,-23.3,28.5,-23.1,26.6,-23.6,26.7,-24.0,26.1,-24.1,26.1,-23.8,22.8,-24.5,22.9,-24.9,21.4,-25.2]],[0,0,126,[-66.2,6.4,-65.6,2.7,-65.9,2.7,-65.1,-1.5,-61.7,-0.6,-61.8,-0.2,-61.6,-0.1,-61.6,-0.2,-58.9,0.3,-58.9,0.4,-58.6,0.4,-58.7,0.8,-56.1,1.2,-56.0,0.7,-53.0,1.4,-53.0,1.2,-49.1,2.1,-50.9,9.6]],[0,0,127,[92.8,-120.3,85.7,-118.5,85.2,-120.3,86.2,-120.5,85.3,-123.8,86.2,-124.0,86.0,-124.7,88.5,-125.3,88.6,-124.8,91.5,-125.5]],[2,0,143,[65.9,-32.1,67.6,-32.3,67.5,-32.8,70.8,-33.1,70.9,-32.5,72.7,-32.7,73.2,-26.8,67.2,-26.3,67.3,-25.5,65.9,-25.3,64.4,-25.1,63.6,-25.8,63.4,-26.1,63.0,-31.9,63.0,-31.9,63.0,-32.5,65.9,-32.7]],[2,0,152,[71.0,-58.1,70.8,-58.1,70.9,-57.3,66.7,-56.9,66.6,-57.5,63.8,-57.2,62.1,-70.3,64.9,-70.7,64.9,-71.3,67.7,-71.8,69.1,-71.9,69.2,-71.2,69.2,-71.2]],[1,0,166,[-119.5,11.0,-119.4,10.7,-119.7,10.7,-119.8,11.3,-123.2,10.5,-122.8,8.8,-122.5,8.9,-122.0,6.4,-121.7,6.4,-120.9,3.0,-116.5,3.9,-114.5,4.3,-114.4,3.8,-111.8,4.4,-112.4,7.6,-112.5,7.6,-113.5,12.3]],[0,0,168,[-15.2,-54.0,-17.1,-46.3,-17.0,-46.3,-22.1,-25.5,-19.7,-24.9,-20.3,-22.6,-25.4,-23.9,-19.8,-46.8,-19.3,-48.8,-17.3,-54.5]],[1,0,203,[-116.6,-66.1,-119.6,-73.4,-119.6,-73.4,-119.7,-73.6,-117.1,-74.6,-117.3,-75.3,-113.2,-76.8,-112.9,-76.1,-112.8,-76.2,-112.4,-75.1,-111.6,-75.4,-110.3,-72.3,-109.9,-72.5,-108.6,-69.5]],[0,0,259,[-65.0,-38.0,-64.6,-38.1,-64.3,-37.0,-63.9,-37.1,-64.1,-38.3,-59.0,-37.3,-61.4,-32.6,-62.1,-30.4,-62.3,-28.3,-74.3,-26.4,-74.6,-27.0,-76.8,-26.4,-77.0,-27.0,-78.6,-26.6,-81.4,-37.6,-81.3,-37.6,-81.6,-38.9,-78.6,-39.9,-76.3,-40.4,-75.3,-40.1,-75.2,-39.4,-74.7,-39.5,-74.4,-38.3,-74.1,-38.4,-73.9,-37.5,-73.5,-36.8,-73.2,-36.9,-73.8,-38.5,-73.7,-38.6,-73.9,-39.3,-72.9,-39.5,-72.7,-38.5,-73.1,-38.5,-72.6,-37.0,-71.7,-37.2,-71.9,-38.6,-70.1,-39.2,-64.9,-38.3]],[0,0,326,[-67.1,-69.0,-65.9,-74.7,-59.3,-73.3,-60.9,-66.2,-63.6,-66.8,-63.7,-66.3,-60.7,-65.7,-62.6,-56.9,-66.0,-57.7,-66.1,-57.0,-68.7,-57.6,-68.6,-58.2,-69.1,-58.4,-67.5,-65.7,-67.3,-65.6,-66.9,-67.6,-66.7,-67.6,-66.5,-68.9]],[0,0,419,[-51.1,-0.3,-50.3,-4.2,-37.1,-1.5,-40.9,4.8,-47.9,0.9,-47.9,0.5]],[0,0,447,[14.9,-121.6,15.0,-121.5,15.3,-123.2,17.6,-122.8,17.3,-121.2,17.4,-121.2,15.9,-111.8,13.4,-112.2]],[0,0,475,[-116.0,22.7,-116.5,24.3,-120.4,23.2,-119.9,21.6]],[0,0,492,[71.5,-105.7,70.2,-105.4,70.0,-106.3,71.3,-106.6]],[0,0,495,[67.7,-114.9,63.0,-114.0,62.4,-117.3,63.1,-117.5,62.9,-118.2,63.8,-118.4,63.7,-119.1,64.2,-119.2,65.0,-121.2,66.2,-121.4,66.0,-122.3,66.7,-123.0,67.9,-123.2,67.7,-124.5,69.2,-124.8,70.4,-117.9,67.3,-117.3]],[3,0,540,[115.2,14.1,114.8,18.4,98.7,17.0,99.1,12.7]],[0,0,573,[-104.4,-80.5,-104.9,-79.1,-111.8,-81.8,-111.2,-83.2]],[0,0,591,[-49.2,-54.4,-52.1,-55.1,-51.8,-56.5,-51.9,-56.6,-52.2,-55.4,-52.9,-55.6,-53.1,-54.7,-55.1,-55.2,-54.3,-58.1,-54.6,-58.1,-55.0,-56.5,-62.2,-58.1,-58.9,-72.7,-51.7,-71.1,-52.9,-65.7,-49.9,-65.1,-49.9,-64.9,-46.9,-64.3]],[0,0,598,[-87.5,-40.4,-90.2,-39.8,-93.7,-38.3,-94.2,-38.4,-94.2,-40.0,-95.8,-40.0,-95.8,-49.8,-88.4,-49.7,-85.8,-40.5]],[1,0,599,[-32.4,22.8,-37.2,21.4,-37.2,21.4,-38.2,21.0,-37.4,18.9,-37.7,18.8,-36.0,14.3,-36.6,14.1,-37.1,15.4,-40.6,14.1,-39.1,10.6,-38.8,10.7,-37.3,7.6,-28.4,9.4,-25.0,10.1,-26.2,16.3,-26.5,16.2,-26.6,16.9,-29.6,16.3,-29.5,15.7,-30.9,15.4,-32.5,20.2,-31.9,20.3]],[0,0,602,[-30.3,16.3,-26.1,17.1,-26.7,20.5,-26.8,20.5,-27.3,23.2,-30.5,22.6,-30.9,22.5,-30.4,19.8,-30.8,19.7]],[0,0,650,[-102.0,-13.6,-103.1,-9.1,-106.5,-9.9,-105.4,-14.4]],[1,0,679,[63.0,-39.2,62.5,-46.5,71.5,-47.1,72.1,-39.8]],[0,0,720,[-98.8,17.3,-98.8,20.3,-102.3,20.3,-102.3,21.0,-107.9,20.9,-107.9,17.0,-102.2,17.1,-102.2,17.3]],[0,0,728,[-116.3,-28.2,-115.9,-28.2,-111.8,-26.0,-112.0,-24.5,-108.4,-24.1,-109.8,-13.4,-113.6,-12.9,-113.6,-13.4,-118.3,-14.0,-118.0,-16.3]],[1,0,759,[114.3,21.2,119.7,21.9,119.0,28.0,113.6,27.4]],[0,0,797,[-79.8,19.7,-79.4,22.1,-78.2,22.0,-77.9,24.7,-77.1,24.6,-76.7,28.1,-85.3,29.1,-85.5,25.7,-85.4,25.7,-85.5,24.8,-86.1,24.9,-86.2,23.4,-85.9,23.4,-86.2,21.1,-86.4,21.2,-87.1,15.8,-81.5,15.1,-81.3,17.0,-80.5,16.9,-80.1,19.8]],[0,0,800,[-66.0,-0.8,-66.3,1.0,-68.4,0.8,-67.7,3.2,-69.5,3.7,-69.3,4.4,-68.6,4.2,-68.5,4.3,-66.8,3.9,-66.4,5.4,-68.1,5.8,-67.7,7.1,-76.8,9.6,-77.5,7.2,-78.1,7.3,-79.6,2.3,-68.9,-0.7,-68.8,-1.1]],[0,0,805,[-10.8,-55.3,-9.5,-55.1,-9.9,-53.0,-11.2,-53.2]],[0,0,814,[-37.3,7.6,-37.0,6.4,-31.7,-2.2,-31.0,-2.0,-31.0,-2.1,-23.5,-0.5,-23.5,-0.6,-22.7,-0.5,-23.3,3.0,-24.0,2.8,-25.3,10.0,-28.4,9.4,-28.0,7.2,-30.4,6.8,-30.7,8.9]],[0,0,829,[-106.6,-62.5,-109.5,-62.3,-109.7,-64.3,-106.8,-64.5]],[0,0,841,[-88.1,16.1,-87.0,24.2,-95.1,25.2,-95.5,22.2,-94.3,22.0,-95.0,17.0]],[1,0,866,[38.8,-69.0,39.4,-68.9,39.1,-65.0,38.6,-65.1,38.6,-64.9,28.6,-65.4,28.9,-69.9,38.8,-69.4]],[3,0,898,[28.1,-56.2,34.9,-55.8,34.3,-46.2,27.4,-46.7]],[0,0,920,[-107.2,-66.4,-109.3,-65.6,-109.9,-67.2,-107.8,-68.0]],[2,0,946,[-44.4,12.0,-45.9,16.5,-53.9,13.8,-52.5,9.4]],[0,0,965,[73.0,-4.5,65.3,-4.2,65.3,-4.4,63.9,-4.4,63.8,-7.0,63.8,-10.3,69.0,-10.5,68.9,-12.9,72.7,-13.1,72.8,-9.3,74.5,-9.4,74.7,-5.4,73.0,-5.4]],[0,0,977,[-23.7,-111.7,-22.8,-111.5,-22.9,-110.8,-23.8,-110.9]],[0,0,15,[-110.1,-51.4,-114.0,-50.9,-114.1,-51.4,-117.3,-49.9,-118.7,-54.0,-116.2,-55.2,-117.3,-64.7,-111.9,-65.4,-110.8,-56.1,-110.7,-56.1]],[1,0,17,[-10.3,-114.9,-10.7,-110.7,-23.1,-112.0,-22.7,-116.1,-21.9,-116.0,-21.9,-116.2]],[0,0,20,[-53.3,-39.3,-52.9,-39.2,-53.2,-38.3,-53.9,-38.5,-54.8,-34.9,-56.8,-35.4,-56.1,-38.2,-57.5,-36.4,-57.9,-36.8,-55.9,-39.2,-55.7,-40.0,-55.5,-39.9,-55.4,-40.6,-54.0,-42.2,-52.7,-41.8]],[0,0,67,[54.2,-61.4,58.0,-60.9,57.6,-57.9,53.8,-58.4]],[0,0,77,[79.3,-40.6,73.4,-39.9,73.3,-40.7,79.2,-41.4]],[0,0,109,[-37.2,15.5,-39.3,21.3,-42.4,20.2,-40.3,14.4]],[0,0,149,[-47.4,20.3,-52.0,18.9,-52.5,20.4,-57.0,20.0,-65.0,17.1,-65.7,6.9,-53.2,9.4,-54.7,13.6,-46.2,16.6]],[0,0,178,[-106.1,-59.9,-106.2,-61.3,-102.1,-61.6,-102.0,-59.6,-99.6,-59.8,-99.4,-57.0,-101.8,-56.9,-101.8,-56.8,-103.5,-56.7,-105.2,-56.6,-105.2,-56.0,-102.5,-56.2,-101.9,-50.1,-108.2,-50.0,-108.2,-50.1,-110.0,-50.0,-110.1,-51.4,-110.2,-52.5,-109.7,-52.6,-110.2,-57.8,-110.8,-57.8,-110.9,-59.5]],[2,0,192,[-69.6,-88.6,-69.2,-88.5,-69.1,-89.5,-66.2,-88.9,-66.4,-87.9,-65.9,-87.8,-65.7,-89.0,-49.6,-86.0,-49.8,-85.0,-49.4,-85.0,-50.9,-77.2,-50.8,-77.2,-51.1,-75.2,-53.2,-75.6,-53.2,-75.7,-68.1,-78.2,-68.1,-78.5,-70.6,-79.0,-70.5,-79.4,-72.5,-79.7,-72.2,-81.3,-72.0,-81.2,-71.7,-83.3,-70.7,-83.1]],[0,0,232,[-49.9,-51.3,-44.6,-50.0,-45.2,-47.4,-37.9,-45.6,-39.6,-38.7,-40.1,-38.8,-40.7,-36.4,-44.1,-37.3,-44.0,-37.8,-44.7,-38.0,-44.8,-37.7,-46.6,-38.1,-46.3,-39.4,-52.9,-41.0,-52.2,-43.6,-51.8,-43.5]],[0,0,248,[56.1,25.6,53.4,27.9,48.8,22.6,51.5,20.3]],[0,0,274,[-55.1,-109.8,-53.5,-109.7,-53.6,-107.5,-55.2,-107.7]],[2,0,288,[-111.7,-88.7,-111.4,-84.1,-121.3,-83.4,-121.3,-83.7,-123.1,-83.6,-123.2,-86.9,-121.6,-87.0,-122.4,-98.3,-124.1,-98.2,-125.1,-110.8,-117.8,-111.2,-117.5,-108.1,-113.0,-108.3,-112.8,-105.7,-111.4,-105.8,-111.5,-106.2,-111.1,-106.9,-107.7,-104.9,-107.9,-102.8,-108.7,-102.8,-108.5,-99.2,-109.0,-99.2,-108.9,-98.1,-111.3,-97.9,-110.9,-93.3,-111.5,-93.3,-111.1,-88.7]],[0,0,443,[-68.2,-53.4,-70.4,-41.1,-83.0,-43.4,-86.2,-55.2,-85.3,-55.0,-85.0,-56.6]],[0,0,462,[-108.0,-24.2,-104.2,-22.8,-105.4,-14.8,-109.5,-13.7]],[0,0,536,[33.0,-24.4,31.7,-22.4,30.3,-23.4,31.6,-25.3]],[0,0,583,[-102.0,-102.7,-102.2,-99.8,-102.5,-99.8,-103.4,-85.0,-107.5,-86.9,-107.2,-89.7,-107.5,-89.7,-107.2,-94.0,-107.5,-94.0,-106.8,-104.9]],[0,0,589,[65.1,-47.7,62.5,-47.5,62.1,-52.0,64.8,-52.2]],[0,0,993,[30.4,50.6,30.7,50.8,31.0,50.5,33.9,53.0,33.6,53.3,34.7,54.2,32.9,62.3,28.2,61.4]],[0,0,15,[81.0,79.2,78.5,82.0,77.6,81.2,77.4,81.4,76.7,81.5,75.8,80.7,75.0,81.6,74.0,80.6,73.5,81.2,72.6,80.4,72.7,79.5,72.2,79.0,72.3,78.9,71.9,78.5,72.6,76.0,74.7,73.8,75.9,74.9,76.1,74.8]],[2,0,74,[-6.2,93.9,-7.3,96.4,-10.3,95.0,-14.2,102.9,-21.6,99.2,-17.5,90.9,-17.2,91.1,-14.5,85.3,-12.4,85.3,-8.5,87.2]],[1,0,78,[103.4,33.3,112.7,34.2,112.0,41.3,102.7,40.4]],[5,0,110,[-79.3,92.5,-80.5,93.6,-79.7,94.6,-86.5,100.3,-94.0,91.5,-89.9,88.1,-87.8,90.5,-87.2,90.0,-86.1,91.3,-82.7,88.5]],[1,0,128,[-106.7,33.3,-102.5,33.0,-102.0,40.9,-106.2,41.2]],[0,0,132,[-79.5,94.6,-78.9,95.3,-77.5,94.1,-75.4,96.5,-75.1,96.3,-72.9,98.6,-74.9,100.3,-75.5,99.6,-82.4,105.5,-86.6,100.6]],[2,0,179,[-31.2,92.2,-33.5,96.8,-38.4,94.4,-30.6,80.0,-27.5,80.9,-31.0,87.3,-30.9,87.4,-32.9,91.2]],[0,0,282,[-74.7,35.4,-74.8,34.0,-73.9,34.0,-71.7,37.4,-71.7,40.0,-76.5,41.1,-78.3,41.2,-78.5,35.5]],[0,0,305,[-99.6,37.9,-102.0,38.1,-102.4,33.2,-100.0,33.0]],[0,0,324,[-113.3,103.1,-115.3,104.6,-115.2,104.7,-115.8,105.1,-116.8,105.9,-125.3,95.9,-124.1,94.9,-124.1,94.9,-120.3,91.2,-119.3,90.2,-114.9,97.1,-114.3,96.7,-111.1,101.1]],[0,0,410,[-86.1,63.3,-85.4,58.6,-85.6,58.5,-85.1,55.5,-82.0,56.0,-82.2,57.1,-79.1,57.6,-79.8,62.3,-82.5,61.9,-82.6,62.3,-82.9,62.3,-83.2,63.7]],[0,0,433,[-124.4,55.0,-125.3,55.9,-126.4,54.8,-125.4,53.9]],[0,0,458,[76.7,123.4,72.2,123.0,72.9,116.5,75.2,116.8,75.2,117.4,76.4,117.6,76.8,118.9,76.5,121.5,76.9,121.5]],[3,0,459,[-10.6,97.4,-9.8,95.7,-6.3,97.2,-4.1,102.3,-8.2,111.9,-15.4,108.9,-11.5,99.6,-11.5,99.5,-10.6,97.4]],[3,0,474,[-83.9,46.9,-81.9,47.1,-81.8,46.1,-66.6,42.7,-60.4,44.5,-57.2,43.9,-64.3,57.3,-88.2,54.4,-87.5,49.0,-87.2,47.3,-86.1,47.4]],[3,0,488,[-9.9,62.1,-8.6,57.4,-1.4,59.4,-0.7,61.0,-1.5,63.3,-0.8,63.5,-1.2,64.7,-2.0,64.4,-2.0,64.6]],[0,0,507,[19.7,52.4,19.6,52.7,12.6,50.9,15.3,40.4,15.9,40.3,21.9,42.8,30.3,50.7,30.3,50.9,27.9,62.0,27.8,62.0,27.7,62.7,24.2,62.1,25.5,53.9,24.9,53.7,24.8,54.0,23.7,53.8,23.8,53.5]],[0,0,551,[95.3,107.4,94.6,110.1,93.3,109.7,94.0,107.0]],[0,0,554,[26.9,108.3,26.2,109.7,24.3,108.8,24.9,107.4]],[0,0,559,[112.3,78.4,111.6,80.0,111.3,79.9,111.1,80.5,109.3,79.8,109.5,79.2,105.0,77.5,105.7,75.7,102.9,74.7,103.1,74.2,100.0,73.0,101.9,67.8,105.1,69.0,105.2,68.8,116.9,73.1,115.0,78.3,113.3,77.6,112.9,78.6]],[0,0,614,[-80.3,31.4,-80.3,34.4,-80.0,34.4,-79.9,38.8,-82.0,38.8,-82.0,39.5,-83.2,39.5,-83.1,42.0,-85.6,42.1,-85.6,39.3,-83.9,39.3,-83.9,38.8,-85.4,38.9,-85.6,29.5,-82.5,29.5,-82.4,31.4]],[1,0,666,[93.2,103.6,92.9,105.7,85.6,105.0,85.9,101.5,88.3,101.7,88.5,99.2,95.7,101.4,95.2,103.8]],[0,0,672,[86.6,45.5,86.8,45.0,88.2,44.9,90.0,45.3,91.0,45.9,92.2,47.1,92.7,48.0,92.4,48.5,92.8,48.9,92.8,49.4,91.4,52.1,91.7,52.3,90.7,54.3,91.6,54.7,91.5,54.9,91.7,55.0,90.4,57.8,88.9,57.0,87.1,60.5,86.8,60.8,86.3,60.7,80.9,56.1,80.6,55.8,80.7,55.4,85.5,45.7,85.9,45.4,86.3,45.4]],[3,0,719,[-42.3,35.0,-42.4,36.2,-42.1,36.2,-42.5,38.7,-43.6,38.5,-44.2,42.3,-50.1,41.3,-47.3,34.2,-44.0,34.7]],[0,0,756,[-64.3,105.6,-65.4,104.4,-65.3,104.3,-68.5,101.0,-68.0,100.6,-69.1,99.4,-69.5,99.7,-72.1,97.0,-70.6,95.6,-73.3,92.7,-69.4,88.9,-66.5,91.9,-63.8,89.3,-62.8,90.3,-63.1,90.6,-62.3,91.4,-64.0,93.1,-63.3,93.9,-63.9,94.5,-62.9,95.5,-60.9,93.4,-58.0,96.3,-59.4,97.8,-57.7,99.4]],[0,0,785,[-92.9,113.8,-93.8,114.7,-89.1,119.2,-94.1,124.5,-100.6,118.4,-99.9,117.6,-103.9,113.8,-99.5,109.1,-95.4,112.9,-94.7,112.1]],[0,0,861,[1.4,84.7,1.1,84.7,-4.6,85.7,-6.1,85.3,-6.8,84.4,-6.5,83.5,-6.4,81.8,-5.3,81.9,-5.1,79.7,-4.9,79.7,-4.9,79.5,-0.3,79.8,-0.3,80.6,1.6,80.7,1.6,80.9,2.7,80.9,2.5,83.6,1.5,83.6]],[0,0,880,[84.0,82.8,83.9,84.5,84.2,84.5,84.1,86.2,86.3,86.4,85.6,96.6,78.2,96.2,78.5,91.4,79.1,91.4,79.5,84.3,80.4,84.3,80.5,82.1,83.5,82.3]],[1,0,896,[-34.4,107.7,-35.5,110.7,-39.9,109.0,-38.8,106.0]],[0,0,923,[-97.2,63.4,-101.1,62.0,-98.2,53.6,-94.1,55.0,-95.4,59.1,-90.9,60.5,-92.1,64.3,-93.8,63.7,-94.4,65.5,-90.9,66.7,-93.1,73.3,-93.4,73.2,-93.7,74.5,-98.4,73.0,-96.5,66.6,-97.2,66.3,-96.6,64.6,-97.5,64.3]],[2,0,937,[99.8,68.4,100.7,69.2,99.8,70.2,100.4,70.8,100.6,71.2,100.5,71.5,99.5,72.5,89.2,63.5,92.4,59.7,92.7,60.0,95.5,60.7,97.9,62.8,98.9,61.7,102.7,65.0]],[3,0,962,[34.3,73.4,40.9,74.5,37.9,77.9,33.6,77.4]],[0,0,966,[126.8,78.4,126.0,81.6,121.1,80.4,121.9,77.2]],[3,0,972,[15.1,72.9,7.8,74.3,7.5,71.3,8.3,67.9,12.5,67.0,14.0,67.3]],[1,0,977,[-116.5,49.3,-114.9,49.9,-114.6,49.0,-110.8,50.6,-112.4,54.6,-114.1,53.9,-115.7,57.9,-116.5,57.5,-116.8,58.4,-117.4,58.1,-117.7,59.0,-121.1,57.6,-120.8,56.8,-121.7,56.5,-122.5,58.7,-123.0,58.5,-124.0,59.1,-125.0,57.8,-123.5,53.8,-123.1,53.9,-120.6,47.2,-116.3,48.8]],[0,0,0,[12.3,58.9,12.4,58.0,11.7,57.8,12.1,56.5,11.1,56.3,11.4,54.6,11.3,54.6,12.3,50.9,18.9,52.8,18.0,56.1,13.8,54.9,13.7,55.1,18.5,56.4,17.5,60.0,15.8,59.6,15.8,59.9]],[0,0,10,[0.1,97.1,10.0,94.1,10.5,95.7,0.6,98.8]],[1,0,27,[-111.8,99.9,-114.3,95.9,-115.0,96.3,-118.7,90.5,-119.1,89.7,-115.4,87.3,-108.8,98.0,-108.0,99.2,-110.5,101.6,-111.6,99.7]],[0,0,68,[65.8,111.5,62.4,110.8,62.2,111.6,57.6,110.7,57.8,109.7,57.3,110.2,56.4,110.5,55.4,110.3,54.6,109.5,54.4,108.5,54.3,108.4,58.1,89.5,58.5,89.6,58.6,89.2,59.9,88.5,61.4,88.5,62.5,88.7,63.9,89.5,64.6,90.4,64.9,89.9,65.6,89.4,66.4,89.1,67.2,89.2,67.8,89.7,68.1,90.5,67.4,94.2,66.8,94.8,66.1,95.1,63.7,106.9,64.2,107.0,66.6,107.6,67.1,107.9,67.3,108.5,67.3,109.1,66.8,109.5,66.2,109.5,63.3,108.9,63.3,109.2,66.2,109.7]],[0,0,74,[76.7,108.7,76.4,112.8,70.1,112.3,70.4,108.3]],[2,0,211,[25.2,114.2,28.5,106.9,45.5,114.7,41.5,123.4,28.8,117.7,29.5,116.2]],[0,0,270,[9.7,97.9,1.4,100.5,0.9,98.9,9.2,96.3]],[0,0,300,[-70.9,27.8,-71.8,28.2,-72.7,25.9,-71.7,25.5,-72.2,24.4,-65.2,24.1,-64.9,32.4,-68.9,32.4,-69.9,32.8,-71.6,28.5,-70.7,28.1]],[0,0,304,[-28.1,28.8,-28.1,29.1,-27.6,29.2,-28.7,35.4,-29.2,35.3,-29.3,35.6,-37.0,34.3,-36.7,32.3,-37.1,32.2,-37.8,34.3,-38.0,34.3,-38.2,35.1,-39.8,34.6,-39.6,33.8,-39.7,33.8,-39.0,31.5,-37.3,32.0,-37.0,30.0,-36.3,30.1,-35.8,27.5]],[3,0,403,[69.5,79.6,68.5,80.6,60.2,72.8,60.2,72.4,63.4,69.0,63.4,69.1,65.6,66.7,71.2,71.9]],[0,0,426,[40.9,90.2,42.4,91.8,39.6,104.3,38.3,105.5,37.1,104.3,33.3,108.2,26.5,105.3,32.1,99.4,32.0,99.3]],[0,0,443,[-66.3,72.1,-67.9,74.1,-71.7,70.8,-70.0,68.9]],[2,0,459,[117.2,65.8,117.1,66.6,111.9,65.5,112.1,64.7,103.2,62.9,104.4,56.7,116.2,59.0,117.7,51.5,122.7,52.5,119.9,66.3]],[1,0,460,[-30.0,117.3,-27.1,117.6,-27.5,124.1,-28.4,124.0,-28.6,126.6,-35.0,126.2,-34.5,118.9,-33.7,119.0,-33.5,117.1,-32.8,117.1,-32.7,116.5,-29.9,116.7]],[0,0,465,[5.8,105.2,5.5,105.8,4.9,105.5,5.2,104.9]],[0,0,663,[60.7,116.3,59.3,122.7,49.9,120.6,50.6,117.4,51.5,117.5,51.9,115.5,53.2,115.8,53.3,115.5,57.2,116.4,57.4,115.6]],[0,0,712,[-41.4,75.4,-50.0,87.6,-56.0,83.4,-55.8,83.1,-57.8,81.7,-49.9,70.6,-47.9,72.0,-47.6,71.6]],[0,0,724,[-8.8,113.0,-9.2,114.5,-10.0,114.3,-9.5,112.7]],[0,0,790,[-98.5,30.2,-98.5,32.6,-106.1,32.4,-106.1,31.7,-107.3,31.6,-107.2,28.5,-101.6,28.6,-101.6,29.4,-100.9,29.4,-101.0,29.9,-99.1,30.0,-99.1,30.2]],[0,0,825,[-59.4,30.4,-59.9,32.4,-64.4,31.3,-63.9,29.4]],[0,0,833,[-107.4,99.4,-107.6,98.9,-108.1,98.2,-108.2,98.3,-113.1,90.9,-108.6,88.0,-104.0,95.0,-104.4,95.3,-104.1,95.7,-104.4,95.8,-104.1,96.3]],[0,0,875,[33.3,73.0,32.8,76.9,28.2,76.2,28.1,77.1,26.1,76.8,26.2,76.0,26.0,75.9,27.4,65.9,30.8,66.4,30.0,72.5]],[0,0,935,[-94.1,92.4,-89.3,97.2,-92.4,100.2,-97.1,95.4]],[0,0,944,[-52.8,33.0,-54.9,38.4,-54.6,38.5,-55.7,40.8,-64.3,38.8,-64.5,32.0,-59.9,32.7,-59.0,30.6]],[0,0,18,[-41.1,33.0,-41.2,33.4,-46.6,32.4,-43.6,24.0,-38.5,25.8,-39.0,27.1,-37.4,27.7,-38.3,30.3,-39.9,29.7,-40.1,30.4,-39.3,30.7,-40.3,33.3]],[1,0,21,[95.9,56.0,96.4,52.2,95.9,52.1,97.0,45.3,97.5,45.4,97.6,44.5,104.9,45.6,103.7,53.2,102.9,53.1,102.8,53.3,103.4,53.4,103.0,56.3,102.4,56.2,102.2,57.3,102.7,57.4,102.3,60.3,101.8,60.2,101.7,60.7,94.5,59.6,95.1,55.9]],[0,0,28,[0.9,66.2,0.3,67.7,-0.4,67.4,0.2,65.9]],[0,0,96,[40.8,60.1,40.3,60.7,39.7,63.7,40.4,63.8,40.7,62.6,40.2,62.5,40.3,61.6,42.1,61.9,45.5,64.6,45.7,67.1,44.2,70.1,43.3,70.0,42.8,72.7,40.8,72.4,39.6,72.2,39.4,73.5,31.0,72.1,32.5,63.9,38.4,65.0,39.3,60.0,39.8,59.3]],[0,0,98,[23.5,108.3,21.9,111.8,20.1,111.1,23.0,108.1]],[0,0,120,[-114.7,67.5,-115.5,70.2,-119.9,61.9,-121.3,63.0,-123.0,60.2,-121.2,58.9,-120.8,59.5,-115.7,61.1,-115.5,60.5,-112.6,61.4]],[0,0,153,[-20.1,61.4,-19.6,61.6,-17.4,55.6,-17.0,55.8,-16.6,54.6,-8.8,56.6,-9.6,58.8,-9.9,58.7,-10.7,60.9,-10.0,61.2,-11.3,64.7,-11.2,64.7,-14.5,73.1,-15.0,72.9,-16.1,75.8,-24.3,72.8]],[0,0,239,[-81.6,119.0,-82.5,118.1,-86.6,122.2,-88.9,120.0,-88.0,119.0,-91.6,115.5,-90.8,114.7,-89.2,116.3,-88.5,115.6,-92.2,112.0,-90.8,110.6,-91.4,110.0,-87.5,106.0,-86.1,107.3,-85.3,106.5,-83.5,107.5,-83.2,107.3,-77.5,112.9,-79.4,114.8,-78.4,115.7]],[3,0,258,[13.1,89.7,9.1,90.8,7.5,85.2,13.5,83.7,14.1,86.2]],[0,0,292,[112.2,66.9,111.8,68.0,108.4,66.8,108.8,65.6]],[0,0,349,[-58.9,40.1,-56.0,41.3,-56.7,42.9,-58.9,42.0]],[1,0,391,[-108.8,87.4,-112.7,89.9,-114.8,86.8,-114.5,86.7,-114.7,86.4,-111.5,83.6,-110.9,84.3,-110.8,84.3]],[1,0,505,[-79.1,71.8,-87.4,79.7,-92.2,74.8,-91.5,72.1,-91.0,72.2,-89.8,66.8,-83.7,67.1]],[0,0,509,[-18.0,75.8,-15.9,76.6,-17.1,80.2,-19.1,79.5,-19.2,79.7,-21.4,78.9,-22.1,79.0,-27.0,77.1,-25.3,72.6,-18.4,75.1,-18.5,75.8,-18.1,76.0]],[1,0,532,[-83.7,104.2,-86.2,106.5,-90.9,101.4,-88.4,99.1]],[1,0,541,[-65.8,39.2,-65.7,38.9,-68.5,34.9,-68.5,33.1,-64.5,33.1,-64.3,39.3]],[3,0,582,[35.2,81.0,29.6,86.8,28.8,85.9,28.7,81.5,28.5,81.5,28.5,81.2,28.7,81.2,28.7,79.8,31.6,79.5,34.5,79.9]],[0,0,612,[-107.3,115.9,-112.6,110.5,-109.0,107.0,-108.6,107.4,-103.1,102.2,-98.2,107.2]],[0,0,685,[103.8,122.5,103.7,125.5,98.1,125.3,98.2,122.3,99.2,122.3,99.2,121.7,101.3,121.8,101.3,122.4]],[0,0,690,[17.6,84.5,19.2,82.7,21.2,84.5,21.7,84.0,22.4,84.6,24.1,82.9,23.5,82.4,24.6,81.3,26.7,83.3,26.7,82.7,28.4,82.8,28.3,84.4,27.1,84.3,26.7,84.8,29.0,87.1,21.2,94.9,17.9,91.7,17.6,92.0,17.3,91.6,17.5,91.3,16.7,90.5,18.8,88.4,18.0,87.7,18.6,87.2,17.2,85.9,18.1,85.0]],[0,0,692,[-72.2,32.9,-73.4,33.5,-74.4,31.6,-73.2,31.0]],[0,0,704,[112.4,108.9,110.0,117.5,103.1,115.6,105.8,106.0,110.9,107.4,110.7,108.4]],[0,0,727,[12.3,92.3,-0.2,96.2,-0.7,94.6,11.9,90.8]],[0,0,785,[85.6,97.3,83.5,113.4,77.2,112.6,77.4,110.5,78.0,108.9,78.8,107.7,79.5,102.1,79.2,100.9,78.9,99.1,79.2,96.8,83.9,97.5,84.0,97.1]],[0,0,793,[-89.4,103.7,-88.4,104.6,-90.9,107.2,-99.6,98.6,-97.5,96.4,-95.0,98.9,-94.5,98.3,-89.2,103.5]],[1,0,850,[-102.5,55.3,-105.9,65.5,-106.4,65.3,-107.0,67.2,-111.5,65.8,-110.9,63.8,-113.0,63.1,-109.7,52.9,-109.1,53.1,-108.8,52.4,-103.1,54.4,-103.4,55.0]],[0,0,861,[-85.8,63.4,-81.3,64.1,-81.7,67.0,-86.3,66.3]],[0,0,889,[92.2,57.3,93.5,57.4,93.2,59.0,91.9,58.8]],[0,0,919,[-106.4,40.0,-110.2,40.2,-110.6,33.1,-106.8,32.9]],[0,0,945,[-31.1,48.2,-30.0,48.5,-30.1,48.9,-29.9,48.9,-30.2,50.2,-31.5,49.8]],[3,0,969,[-75.4,92.8,-83.8,83.9,-84.2,84.3,-85.4,83.1,-72.3,70.7,-60.0,81.2,-64.3,86.6,-66.6,84.5]],[0,0,35,[10.8,81.0,3.5,82.7,3.2,81.5,4.1,81.3,6.1,76.1,8.1,75.6,7.9,74.4,15.1,73.0,16.0,78.6,14.9,80.2,14.0,80.4,14.1,81.0,11.4,81.5,11.3,81.0,10.9,81.1]],[0,0,48,[19.8,76.9,19.1,76.9,17.9,70.3,20.5,70.4,26.1,71.4,25.4,77.4,22.0,78.0,22.1,78.8,20.1,79.1]],[0,0,57,[117.8,69.6,117.4,71.8,116.5,71.6,116.9,69.5]],[1,0,58,[19.7,53.5,24.0,54.3,22.6,61.8,18.3,61.0]],[0,0,84,[7.2,70.5,0.0,68.6,2.8,61.5,4.6,60.7,11.4,62.3,11.8,62.8,11.9,63.8,12.1,63.8,11.2,67.0,10.0,66.7,9.8,67.1,8.5,67.3]],[0,0,114,[-89.8,55.1,-88.3,56.2,-88.4,57.1,-85.5,57.5,-85.7,58.5,-85.4,58.6,-86.6,66.7,-89.8,66.2,-89.8,66.3,-91.6,66.1]],[2,0,149,[16.9,119.2,15.3,116.8,18.2,113.9,22.1,116.9,20.0,119.5,17.3,119.7]],[1,0,176,[91.8,112.3,91.6,114.3,87.9,113.9,87.9,114.2,84.7,113.9,85.3,108.0,85.9,108.0,86.0,106.7,93.4,107.4,93.1,110.5,92.2,110.4,92.1,112.3]],[0,0,193,[-54.7,68.3,-50.4,71.3,-57.5,81.3,-59.7,79.8,-58.1,77.5,-58.3,77.3,-60.0,79.7,-64.7,76.3,-63.9,75.1,-64.0,75.0,-65.2,76.3,-67.1,74.5,-65.4,72.7,-69.9,68.8,-62.6,61.7,-54.2,67.6]],[0,0,255,[46.4,51.4,45.0,53.2,43.4,51.9,44.9,50.2]],[0,0,275,[-44.9,34.5,-47.2,34.1,-46.6,32.5,-44.6,32.8]],[0,0,278,[20.9,95.1,20.4,95.6,19.5,94.8,20.0,94.2]],[0,0,335,[20.4,96.1,10.5,106.4,9.9,105.9,9.9,103.5,10.2,103.0,10.6,103.3,10.7,103.1,10.5,103.0,12.7,97.8,13.5,95.8,13.9,96.0,15.8,91.8]],[0,0,401,[52.7,86.1,52.7,86.7,51.9,90.1,53.4,90.4,49.6,109.1,50.1,109.2,49.3,113.0,47.6,112.7,48.4,108.9,41.3,107.5,45.2,88.1,45.7,87.8,48.9,88.4,49.3,86.0,50.7,86.3,51.0,85.6,51.6,85.4,52.2,85.5]],[2,0,425,[118.1,40.2,117.7,43.6,115.9,43.4,116.2,40.0,114.6,39.8,114.5,40.3,112.9,40.1,112.9,39.4,112.7,39.4,113.0,36.4,112.7,36.4,113.5,29.0,115.8,29.3,115.8,28.9,119.3,29.3]],[0,0,537,[8.0,101.2,2.7,102.8,2.2,101.2,7.5,99.6]],[0,0,552,[-112.1,75.1,-112.7,74.4,-113.4,73.0,-114.1,71.5,-114.5,70.7,-114.9,70.5,-113.3,65.7,-106.2,68.1,-109.3,77.6,-112.3,76.6,-112.0,75.7,-112.3,75.5]],[0,0,563,[100.0,97.9,99.2,101.1,90.3,98.7,86.1,98.4,86.1,97.3,86.6,97.3,86.9,88.3,90.2,88.3,90.2,89.4,91.0,89.4,91.1,94.9,99.2,96.9,99.0,97.6]],[3,0,604,[6.1,74.9,3.8,81.2,-3.7,78.4,-0.3,69.3,2.3,70.3,2.4,69.9,6.7,71.4,5.5,74.7]],[0,0,628,[32.6,63.2,32.1,65.7,31.0,65.5,30.9,66.0,27.7,65.4,28.2,62.2,31.5,62.7,31.5,63.0]],[0,0,640,[-35.7,64.3,-39.2,70.9,-42.4,69.2,-42.1,68.6,-52.5,63.0,-52.7,63.4,-58.7,60.2,-58.5,59.7,-60.3,58.7,-60.1,58.3,-53.2,45.5,-53.2,45.5,-53.1,45.5,-48.7,47.6,-47.6,45.5,-31.4,50.2]],[2,0,679,[35.4,54.9,39.2,58.4,38.5,63.3,33.6,61.9,34.8,54.9]],[0,0,703,[-15.3,111.2,-14.7,109.8,-9.6,111.6,-10.2,113.1]],[3,0,707,[-25.4,100.9,-32.8,97.3,-30.2,91.9,-31.8,91.1,-28.2,83.8,-27.8,83.9,-25.9,82.9,-25.8,83.7,-24.3,83.7,-23.9,83.8,-23.7,83.4,-23.1,83.0,-22.1,83.2,-21.6,83.6,-21.1,84.3,-21.1,85.3,-20.6,85.9,-20.1,87.1,-19.9,88.6,-20.0,89.8,-20.5,90.8]],[0,0,715,[-60.4,121.6,-61.3,122.7,-63.2,121.1,-62.3,120.0]],[0,0,734,[40.9,108.1,42.5,108.5,42.2,110.0,40.6,109.7]],[0,0,736,[94.5,110.3,93.5,114.0,92.3,113.6,93.3,110.0]],[0,0,779,[-85.9,88.5,-87.8,90.1,-89.8,87.8,-85.8,84.3,-83.2,87.4,-85.3,89.3]],[2,0,787,[-41.4,98.2,-41.4,97.7,-41.2,96.9,-40.8,96.3,-40.4,96.0,-40.3,95.9,-39.8,94.9,-26.5,101.3,-27.5,103.4,-27.3,103.8,-27.3,104.1,-27.5,104.6,-27.8,105.0,-28.5,105.6,-29.5,107.6,-34.9,104.9,-35.4,105.8,-37.0,105.1,-35.9,102.4,-42.0,99.4]],[1,0,792,[26.0,70.2,16.6,69.1,15.3,61.6,20.9,62.4,21.0,62.1,27.0,62.9]],[0,0,805,[1.5,110.2,-0.6,112.3,1.6,114.6,1.9,114.4,-0.0,112.3,2.6,110.9,3.1,111.9,3.0,113.8,2.2,114.5,2.3,114.7,-9.2,125.6,-9.5,125.3,-9.6,125.4,-10.8,124.1,-6.8,110.9,-3.0,102.9,-2.8,103.0,-0.2,107.5,-0.1,107.5,0.1,107.4]],[0,0,864,[-89.0,46.7,-88.0,46.9,-88.1,47.8,-89.2,47.6]],[0,0,969,[8.7,91.1,5.2,92.1,4.5,89.5,4.0,89.6,4.8,92.2,-2.6,94.5,-4.7,87.7,-3.3,87.3,-3.2,87.6,6.9,84.9,7.0,85.1,7.1,85.1]],[1,0,981,[103.1,112.7,102.0,116.5,100.9,116.2,101.5,114.1,96.8,112.7,99.3,104.0,100.4,104.3,100.6,103.5,102.8,104.1,102.5,105.0,105.2,105.7]],[0,0,996,[-73.1,99.0,-70.9,101.2,-71.3,101.6,-70.5,102.4,-69.9,101.9,-66.7,105.5,-67.3,106.1,-66.1,107.3,-71.9,112.7,-73.7,110.8,-74.5,111.5,-76.4,109.5,-75.6,108.8,-77.2,107.1,-77.6,107.4,-78.4,106.6,-79.5,107.7,-81.0,106.2,-74.9,100.3,-74.7,100.5]],[0,0,13,[-64.8,57.5,-71.3,63.7,-71.8,63.6,-71.8,63.7,-73.7,63.4,-73.8,63.9,-71.4,64.3,-74.4,67.2,-74.4,67.2,-75.0,67.8,-76.3,67.7,-79.8,67.2,-79.8,66.8,-81.5,66.7,-80.9,62.2,-80.2,62.2,-80.3,62.7,-79.3,62.8,-79.2,62.5,-79.6,62.5,-78.8,55.9,-77.7,56.0,-77.7,55.9,-73.3,56.5,-73.3,56.7,-71.1,57.0,-71.1,56.7]],[1,0,55,[-93.0,42.0,-93.0,39.0,-95.0,39.0,-95.1,32.8,-86.2,32.7,-86.1,39.5,-86.8,39.5,-86.8,41.9]],[2,0,58,[125.5,32.5,124.9,38.0,119.3,37.4,120.7,23.5,127.2,24.1,126.3,32.6]],[0,0,67,[-89.4,54.0,-97.1,52.7,-96.2,47.9,-93.6,48.3,-93.3,46.7,-90.3,47.2,-90.4,47.6,-88.4,47.9]],[0,0,80,[3.4,104.5,3.0,102.8,6.6,101.8,7.1,103.4]],[0,0,92,[-107.5,32.2,-110.5,32.4,-110.6,31.0,-111.4,31.0,-111.8,24.6,-107.9,24.4]],[0,0,94,[-4.3,70.5,-5.0,72.5,-6.3,71.8,-6.8,73.0,-5.2,73.5,-8.6,82.4,-9.1,82.6,-10.6,82.1,-10.9,83.1,-13.9,82.1,-13.8,81.7,-16.9,80.6,-16.6,79.7,-16.7,79.6,-14.0,72.5,-14.1,72.4,-11.2,65.0,-10.7,65.2,-9.6,62.3,-1.7,65.1,-2.8,68.1,-3.1,68.0,-4.1,70.6]],[0,0,104,[-97.1,79.5,-96.3,80.0,-93.5,74.8,-91.3,77.3,-90.8,76.9,-88.0,79.9,-101.9,92.9,-106.0,86.9,-105.5,86.6,-105.7,86.4,-104.3,85.1,-103.4,86.2,-102.4,85.3,-102.1,85.5,-99.7,83.4]],[0,0,673,[-9.2,35.5,-5.6,36.5,-5.3,35.2,0.6,36.2,0.3,38.2,11.3,41.4,6.4,58.2,-17.9,51.1,-16.4,46.4,-15.3,46.7,-15.2,46.3,-16.4,46.0,-15.7,43.4,-14.6,41.6,-13.8,41.8,-13.6,41.1,-13.3,40.7,-13.6,40.6,-12.9,39.7,-12.7,39.9]]],"ROOF":[[40.0,14.5,35.0,17.4,30.7,10.0,34.0,8.1,35.7,7.1],[5.1,0.4,10.8,-3.6,16.9,6.6,14.2,8.5],[-0.8,4.2,-0.4,1.1,1.8,3.3,0.3,5.0],[-0.4,1.1,-0.1,-0.9,3.1,-0.9,1.8,3.3],[7.6,18.0,1.2,19.2,-2.5,15.8,-1.6,9.6,-0.2,10.8],[1.2,19.2,-2.1,23.5,-2.4,25.7,-3.9,25.5,-2.5,15.8],[10.8,-3.6,13.1,-5.2,25.0,14.1,39.2,32.4,47.3,41.7,56.5,50.9,55.7,51.8,1.8,3.3,3.1,-0.9,5.1,0.4,14.2,8.5,16.9,6.6],[15.7,-16.4,20.2,-19.2,31.3,2.7,34.0,8.1,30.7,10.0,27.1,4.5],[-14.9,-8.2,-21.0,-9.0,-19.5,-17.9,-18.0,-17.4,-17.2,-23.1,-14.3,-22.6,-10.1,-52.6,-7.9,-52.4],[-22.7,3.1,-16.7,4.0,-20.9,31.0,-22.6,38.5,-25.2,47.5,-27.3,53.2,-29.9,52.1,-27.7,41.1,-27.9,37.8],[-27.3,53.2,-34.8,70.4,-39.3,78.2,-43.6,85.3,-48.8,92.5,-50.3,91.1,-45.5,84.3,-41.2,77.2,-36.9,69.4,-29.9,52.1],[-44.7,95.4,-42.5,97.1,-49.1,106.2,-54.7,112.2,-60.7,117.5,-62.6,115.3,-56.1,109.4,-50.9,104.2],[-1.1,-8.1,-5.0,-8.6,-9.1,-9.2,-7.7,-18.8,0.3,-17.6],[-10.0,25.9,-14.2,25.4,-9.1,-9.2,-5.0,-8.6,-9.8,24.7],[-3.9,25.5,-9.8,24.7,-5.0,-8.6,-1.1,-8.1,-1.7,-3.4,0.3,-3.1,-0.1,-0.9,-0.4,1.1,-0.8,4.2,-1.6,9.6,-2.5,15.8],[0.3,5.0,29.3,32.0,27.4,34.2,20.4,29.5,11.8,21.9,7.6,18.0,-0.2,10.8,-1.6,9.6,-0.8,4.2],[-42.5,97.1,-44.7,95.4,-40.1,88.8,-34.3,80.3,-30.3,72.9,-27.0,66.4,-25.2,62.5,-20.1,49.2,-15.4,33.1,-14.2,25.4,-10.0,25.9,-10.5,29.1,-11.2,34.2,-15.1,41.2,-17.9,49.9,-22.7,63.3,-24.3,67.3,-27.5,73.9,-31.6,81.1,-37.6,90.3],[0.3,-17.6,-7.7,-18.8,-4.1,-43.3,0.2,-42.4,-2.2,-25.3,1.4,-24.7],[-32.0,-1.9,-37.5,7.0,-39.2,10.6,-40.0,12.3,-46.2,29.7,-51.1,41.8,-53.1,45.5,-61.2,60.2,-83.2,81.5,-101.0,98.4,-112.8,110.3,-115.9,107.3,-104.1,95.3,-85.0,77.5,-64.3,57.5,-61.4,51.9,-57.3,43.3,-55.7,39.9,-50.7,28.8,-45.8,16.6,-43.6,10.7,-40.8,5.4,-36.8,-1.4,-37.2,-5.5,-37.1,-12.7,-32.8,-11.6,-29.4,-24.4,-27.9,-30.3,-27.0,-34.2,-26.0,-38.1,-23.7,-47.5,-23.2,-49.5,-20.6,-57.1,-17.8,-69.0,-15.2,-79.2,-14.1,-83.9,-9.6,-83.6,-11.2,-75.0,-11.3,-74.6,-13.6,-66.0,-20.1,-48.5,-30.2,-6.9,-30.7,-7.1]],"ROADS":[[3,[-136.6,135.2,-125.9,122.1]],[1,[56.0,86.2,50.9,113.6,71.3,114.5,79.3,115.4,93.8,117.0,102.9,119.4,105.6,120.3,134.3,131.1,141.1,137.7,183.2,175.0]],[1,[47.8,81.3,56.0,86.2,69.8,86.5,70.9,81.6,70.7,79.8,72.0,73.7]],[1,[70.9,81.6,79.6,82.9]],[1,[50.9,113.6,48.6,115.4,45.2,131.3]],[1,[75.7,-168.7,83.5,-149.3,85.7,-145.8,87.7,-134.7,85.3,-127.7,82.4,-122.4,82.2,-115.8,83.0,-108.9,82.6,-105.6,83.4,-94.1]],[2,[-93.6,205.3,-96.7,199.8,-109.6,177.4,-128.3,148.5,-133.6,139.9,-136.6,135.2,-140.9,128.1,-146.1,120.0,-148.0,117.5,-149.9,114.9]],[4,[-115.0,109.2,-102.1,96.3,-86.9,82.5,-64.0,60.3,-55.8,45.6,-54.2,43.0,-51.1,35.8,-47.6,27.9,-41.5,10.1,-37.3,2.3,-32.8,-5.7]],[1,[105.0,-99.7,110.1,-99.4,117.4,-98.8,138.5,-97.1,180.5,-92.3,191.0,-91.6]],[1,[30.3,-248.1,31.9,-244.6,39.9,-235.5,53.8,-224.6,67.0,-212.7,72.6,-206.1,77.8,-199.4,79.3,-197.4,83.6,-190.2,86.8,-182.0,94.2,-159.3,98.7,-140.8,101.4,-132.3,103.0,-128.5,106.8,-118.7]],[1,[184.5,77.4,178.8,73.3,174.8,70.3,166.8,60.1,160.0,49.7,154.5,42.3,153.1,40.8,133.5,19.7,130.0,10.3,127.1,-2.7,126.2,-10.4,125.5,-28.1,124.7,-50.1,124.5,-54.8,123.1,-63.8,120.8,-74.1,116.4,-83.7,113.8,-89.0]],[1,[96.5,-58.4,58.8,-53.5]],[1,[79.9,34.1,86.3,38.8,91.5,41.8,98.6,43.9,124.8,46.3,130.7,22.6,133.5,19.7]],[1,[50.2,-85.3,50.3,-80.2,54.3,-73.3,57.4,-65.8,58.6,-59.3,58.8,-53.5,61.3,-22.9,62.9,0.8,60.5,3.3,43.9,20.3,53.9,32.4,64.3,42.5,69.8,47.0,75.2,53.4]],[1,[-18.5,135.3,-20.2,134.0,-26.0,133.2,-34.8,133.2,-38.5,133.5,-55.0,134.6,-58.9,140.2]],[3,[-64.0,60.3,-40.6,74.1,-29.9,79.4,-15.3,84.3,-8.4,86.5,-7.3,87.3,-1.8,100.8,2.1,108.4,6.3,112.3]],[3,[-15.3,84.3,-28.0,109.0,-32.6,109.3,-34.5,111.0,-38.0,124.0,-38.4,127.5,-38.5,131.5,-38.5,133.5]],[3,[37.6,79.6,34.0,78.9,29.1,78.7,23.1,79.9,16.8,80.4,-2.8,86.4,-7.3,87.3]],[3,[-25.4,72.1,-17.6,53.3,2.2,58.4,7.5,59.8,14.1,61.8,16.8,80.4,14.3,91.4,7.3,106.2,6.3,112.3]],[1,[105.6,120.3,104.8,149.3]],[1,[-5.7,134.8,-4.8,137.6,4.0,141.2,11.2,146.0,16.8,150.5,34.8,163.9,39.8,166.2,45.1,168.6,63.6,175.4,91.7,185.1,104.5,206.4,109.4,216.7,110.4,219.0]],[3,[-107.2,-106.8,-108.4,-86.9,-104.3,-84.0,-87.5,-79.6,-15.8,-66.3]],[3,[-89.2,-59.6,-50.5,-52.9,-36.6,-50.3]],[3,[-40.7,-32.4,-26.5,-28.6]],[3,[-8.4,86.5,2.2,58.4]],[3,[7.5,59.8,14.5,37.0]],[3,[-79.2,-20.1,-80.1,-23.3,-89.2,-59.6,-89.5,-62.7,-89.5,-66.7,-89.1,-71.0,-87.5,-79.6]],[3,[-117.3,-34.0,-116.5,-36.8,-116.0,-38.9,-116.5,-44.1,-117.5,-47.8,-119.5,-53.7,-122.1,-62.2,-125.3,-69.7,-128.6,-75.5,-130.2,-79.4,-130.7,-81.0,-132.8,-84.4,-138.4,-89.5,-142.8,-93.0,-146.4,-103.1,-147.7,-104.6,-149.7,-106.4,-153.9,-110.8,-157.8,-114.8,-159.6,-117.6,-163.8,-126.2,-166.5,-130.5,-171.1,-133.5]],[1,[-202.4,-75.3,-200.0,-71.2,-196.2,-65.0,-187.0,-45.1,-180.4,-27.0,-164.5,-2.3,-161.4,5.3,-147.5,26.8,-138.3,40.1,-110.1,83.2]],[3,[-110.1,83.2,-102.1,96.3]],[1,[-164.5,-2.3,-160.6,-6.7,-155.9,-10.5,-103.0,2.8,-97.9,2.9]],[1,[-97.9,2.9,-96.2,2.5,-88.3,2.5,-84.8,2.0]],[1,[-97.9,2.9,-97.5,6.6,-96.6,41.3,-97.2,44.7,-97.6,47.2,-108.4,79.4,-110.1,83.2]],[3,[-128.6,-75.5,-132.9,-74.1,-141.5,-72.3,-161.8,-70.8,-165.0,-70.7,-170.8,-70.5,-173.0,-68.4,-175.6,-66.4,-181.7,-64.3,-184.5,-64.3,-196.2,-65.0]],[1,[-138.3,40.1,-133.1,40.6,-118.1,45.4,-112.6,45.3,-109.5,44.6,-97.2,44.7]],[1,[-97.2,44.7,-86.7,45.0,-66.2,41.5]],[1,[93.2,-26.5,71.2,-23.9,61.3,-22.9]],[3,[93.8,117.0,97.5,102.9]],[1,[6.3,112.3,12.0,117.7]],[3,[12.0,117.7,14.8,120.1,17.2,136.9,18.9,138.7,24.4,143.3,31.2,151.7,38.2,161.3,39.8,166.2]],[1,[71.3,114.5,70.2,126.2,65.6,145.0,72.0,146.1]],[1,[79.3,115.4,78.9,131.8,78.7,139.2]],[1,[125.5,-28.1,126.6,-28.1]],[1,[131.0,-4.0,145.1,-8.2,149.5,-7.9,149.1,-0.3]],[3,[112.5,19.9,115.8,20.2,130.7,22.6]],[1,[95.1,18.6,112.5,19.9]],[1,[94.3,21.5,86.7,18.8]],[1,[29.9,99.2,24.1,93.8]],[1,[52.5,76.5,46.7,70.9]],[1,[43.8,85.0,37.6,79.6]],[1,[206.0,133.8,201.2,135.2,192.0,137.9,169.1,137.5,128.6,103.6,75.2,53.4]],[1,[-55.0,134.6,-58.9,133.6]],[3,[-65.5,105.6,-86.9,82.5]],[3,[103.3,-49.8,124.7,-50.1]],[3,[60.5,3.3,63.8,5.7,70.3,5.5,74.0,4.8,91.7,-8.5]],[1,[16.1,-85.8,13.5,-45.0,35.8,-43.6,41.1,-54.4,43.2,-85.4]],[3,[-23.4,-87.3,-23.4,-95.4]],[1,[-50.7,-88.1,-49.2,-96.9]],[3,[-90.3,-98.4,-86.9,-106.8]],[3,[-39.8,-37.1,-36.6,-50.3]],[1,[-112.6,45.3,-113.3,27.2,-133.5,21.6]],[4,[-195.0,-87.9,-189.4,-84.0,-170.8,-70.5,-117.3,-34.0,-110.5,-30.3,-94.4,-24.1,-79.2,-20.1,-32.4,-7.5]],[4,[3.2,-180.2,-1.6,-169.8,-9.8,-96.8,-10.5,-90.6]],[4,[-10.5,-90.6,-11.6,-83.1,-15.8,-66.3,-20.4,-48.4,-26.5,-28.6,-31.5,-10.5,-32.4,-7.5,-32.8,-5.7]],[4,[-123.7,119.4,-115.0,109.2]],[1,[10.6,-126.7,41.9,-121.3]],[3,[-102.6,-114.8,-102.6,-116.1,-103.3,-122.7,-103.9,-125.9,-106.7,-128.4,-110.5,-131.3,-112.7,-134.7,-115.7,-140.4,-118.0,-145.3,-120.3,-149.8,-121.9,-152.2,-123.0,-153.6,-127.8,-155.7,-130.3,-157.3,-131.2,-159.0,-131.3,-167.6,-132.3,-174.2,-133.6,-178.4,-135.3,-182.8,-135.9,-186.7,-136.0,-189.9,-135.1,-194.0,-135.1,-199.1,-135.6,-201.5,-137.9,-205.9]],[1,[126.6,-28.1,129.9,-28.3]],[1,[128.2,-3.1,131.0,-4.0]],[1,[127.1,-2.7,128.2,-3.1]],[1,[129.9,-28.3,146.9,-28.8]],[4,[-125.9,122.1,-123.7,119.4]]],"PARK":[[-26.8,-111.2,-21.2,-151.4,-19.6,-159.4,-23.2,-164.6,-41.3,-169.8,-40.6,-175.9,-47.3,-177.7,-54.0,-179.0,-55.0,-173.2,-78.6,-177.7,-89.5,-179.1,-100.8,-178.5,-102.0,-177.8,-102.0,-149.0,-91.4,-121.5,-82.6,-116.7,-84.8,-110.6,-80.2,-108.9,-78.0,-108.1,-72.6,-106.2,-65.9,-104.2,-60.9,-102.8,-59.6,-102.4,-47.0,-100.6,-40.7,-98.4,-40.5,-111.1],[119.9,-100.8,120.5,-110.4,136.3,-110.2,136.8,-118.5,139.9,-118.5,141.2,-129.2,141.7,-133.3,123.1,-133.6,113.7,-139.4,112.3,-139.8,110.2,-108.9,110.9,-105.9,111.6,-101.4,117.5,-101.0],[-129.6,130.1,-128.3,131.0,-127.6,129.6,-128.7,128.9],[-132.9,134.3,-133.0,134.8,-132.9,135.3,-132.7,135.7,-132.2,136.0,-131.7,136.0,-131.3,135.8,-131.0,135.6,-130.7,135.0,-132.4,133.7]],"PARKING":[[104.6,-43.2,123.0,-43.8,123.2,-52.2,105.9,-52.1],[73.2,-82.6,72.9,-73.5,82.6,-73.1,83.2,-82.3],[50.5,81.0,55.8,84.7,65.7,85.2,66.6,81.9,57.8,73.2],[47.0,-18.7,60.1,-19.1,59.7,-29.7,46.7,-29.3],[50.5,10.7,34.0,2.6,33.9,-3.4,45.1,-4.1,58.1,3.0],[-168.6,81.9,-162.9,87.6,-165.8,91.0,-146.2,112.1,-141.7,118.2,-137.6,114.0,-134.3,117.2,-130.6,113.0,-140.6,102.6,-155.8,74.7],[129.8,-135.7,142.9,-135.5,144.7,-147.0,131.4,-148.7]],"ARC":{"石橋商店街 (赤い橋通り)":[[-115.0,109.2,-102.1,96.3,-86.9,82.5,-64.0,60.3,-55.8,45.6,-54.2,43.0,-51.1,35.8,-47.6,27.9,-41.5,10.1,-37.3,2.3,-32.8,-5.7]],"石橋商店街 (サンロード)":[[-195.0,-87.9,-189.4,-84.0,-170.8,-70.5,-117.3,-34.0,-110.5,-30.3,-94.4,-24.1,-79.2,-20.1,-32.4,-7.5]],"石橋商店街 (阪大下通り)":[[3.2,-180.2,-1.6,-169.8,-9.8,-96.8,-10.5,-90.6],[-10.5,-90.6,-11.6,-83.1,-15.8,-66.3,-20.4,-48.4,-26.5,-28.6,-31.5,-10.5,-32.4,-7.5,-32.8,-5.7]]}};
+const hashf = (k) => { const s = Math.sin(k * 91.7 + 13.1) * 43758.5453; return s - Math.floor(s); };
+const pick = (arr, k) => arr[Math.floor(hashf(k) * arr.length) % arr.length];
+const pairs = (f) => { const o = []; for (let i = 0; i < f.length; i += 2) o.push([f[i], f[i + 1]]); return o; };
+const FLOOR = 2.25;                                   // 1階分の高さ（実寸 3m × 0.75）
+const PARKS = TOWN.PARK.map(pairs), PARKINGS = TOWN.PARKING.map(pairs);
+function pip(x, y, poly) {
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+const polyArea = (p) => { let a = 0; for (let i = 0, j = p.length - 1; i < p.length; j = i++) a += (p[j][0] + p[i][0]) * (p[j][1] - p[i][1]); return Math.abs(a / 2); };
+const centroid = (p) => p.reduce((a, q) => [a[0] + q[0] / p.length, a[1] + q[1] / p.length], [0, 0]);
+// 折れ線を 1 単位ごとの点列にする。向きは連続になるよう巻き戻し、角の点は前後の二等分線にして帯が折り返さないようにする
+Path.poly = (pts, step = 1) => {
+  const P = pts.filter((q, i) => i === 0 || Math.hypot(q[0] - pts[i - 1][0], q[1] - pts[i - 1][1]) > 0.05);
+  const segH = [];
+  for (let i = 0; i < P.length - 1; i++) {
+    let h = Math.atan2(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]);
+    if (i) { while (h - segH[i - 1] > Math.PI) h -= 2 * Math.PI; while (h - segH[i - 1] < -Math.PI) h += 2 * Math.PI; }
+    segH.push(h);
+  }
+  const out = [];
+  for (let i = 0; i < P.length - 1; i++) {
+    const [e0, n0] = P[i], [e1, n1] = P[i + 1], L = Math.hypot(e1 - e0, n1 - n0), h = segH[i];
+    const k = Math.max(1, Math.ceil(L / step));
+    for (let j = 0; j < k; j++) {
+      const sharp = i > 0 && Math.abs(h - segH[i - 1]) > 2.1;            // 急な折り返しは角の点を置かない
+      if (j === 0 && sharp) continue;
+      out.push({ e: e0 + (e1 - e0) * j / k, n: n0 + (n1 - n0) * j / k, h: j === 0 && i > 0 ? (h + segH[i - 1]) / 2 : h });
+    }
+    if (i === P.length - 2) out.push({ e: e1, n: n1, h });
+  }
+  return Path.from(out);
+};
+const upNormals = (g) => { const nn = g.attributes.normal; for (let i = 0; i < nn.count; i++) nn.setXYZ(i, 0, 1, 0); nn.needsUpdate = true; return g; };
+
+// ---- 避ける場所（線路・ホーム・作った道路）をグリッドに登録 ----
+const AV = new Map(), AVC = 8;
+const avKey = (e, n) => Math.floor(e / AVC) * 1000 + Math.floor(n / AVC);
+function avoidAdd(e, n, r) {
+  const k = avKey(e, n); if (!AV.has(k)) AV.set(k, []); AV.get(k).push(e, n, r);
+}
+function avoidPath(path, r, step = 1.5) { for (let s = 0; s <= path.length; s += step) { const q = path.at(s); if (Math.abs(q.e) < BS + 12 && Math.abs(q.n) < BS + 12) avoidAdd(q.e, q.n, r); } }
+function blocked(e, n, pad = 0) {
+  const cx = Math.floor(e / AVC), cy = Math.floor(n / AVC);
+  for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) {
+    const a = AV.get((cx + dx) * 1000 + cy + dy); if (!a) continue;
+    for (let i = 0; i < a.length; i += 3) if ((a[i] - e) ** 2 + (a[i + 1] - n) ** 2 < (a[i + 2] + pad) ** 2) return true;
+  }
+  return PLAT_POLYS.some(p => pip(e, n, p));
+}
+[[C, 9.2], [M, 9.2], [P5, 6.2], [P3, 4.6], [P4, 4.6]].forEach(([p, r]) => avoidPath(p, r));
+MODEL_ROADS.forEach(([p, r]) => avoidPath(p, r));
+[WEST_GATE, EAST_GATE].forEach(g => avoidAdd(g.e, g.n, 8.5));
+
+// ---- 建物の壁・屋根の模様（キャンバスで作るタイル） ----
+function tileTex(draw) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const x = cv.getContext('2d'); draw(x);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return t;
+}
+const TEX = {
+  house: tileTex(x => {                                  // 小さめの窓（雨戸の枠つき）
+    x.fillStyle = '#f6f2ea'; x.fillRect(0, 0, 128, 128);
+    x.fillStyle = '#d9d2c4'; x.fillRect(34, 36, 60, 50);
+    x.fillStyle = '#5c6670'; x.fillRect(40, 42, 48, 38);
+    x.fillStyle = '#8b939b'; x.fillRect(63, 42, 2, 38);
+  }),
+  apt: tileTex(x => {                                    // 窓＋バルコニーの手すり
+    x.fillStyle = '#f3f0ea'; x.fillRect(0, 0, 128, 128);
+    x.fillStyle = '#525d68'; x.fillRect(14, 26, 100, 58);
+    x.fillStyle = '#7d8893'; x.fillRect(62, 26, 3, 58);
+    x.fillStyle = '#dcd8d0'; x.fillRect(4, 84, 120, 22);
+    x.fillStyle = '#b9b4ab'; for (let i = 8; i < 124; i += 9) x.fillRect(i, 86, 2, 18);
+    x.fillStyle = '#c9c4ba'; x.fillRect(0, 104, 128, 3);
+  }),
+  shop: tileTex(x => {                                   // 大きなガラス窓
+    x.fillStyle = '#f1ece3'; x.fillRect(0, 0, 128, 128);
+    x.fillStyle = '#4c5762'; x.fillRect(8, 24, 112, 70);
+    x.fillStyle = '#6e7a86'; x.fillRect(44, 24, 3, 70); x.fillRect(82, 24, 3, 70);
+    x.fillStyle = '#d8d1c4'; x.fillRect(0, 96, 128, 10);
+  }),
+};
+const PAL = {
+  houseWall: ['#e8e0d0', '#d9cfbd', '#cdbfa8', '#e2d6c6', '#c9c2b5', '#d8d2c4', '#bfb3a0', '#e6ddcf'],
+  houseRoof: ['#5e6670', '#6b5b52', '#4f5660', '#7a6a5c', '#875c4c', '#56606a', '#6d7268'],
+  aptWall: ['#e9e4da', '#dcd6cb', '#d2cbbf', '#c8c3ba', '#e3dccd', '#d6d0c6'],
+  shopWall: ['#e6dccb', '#d8c7ad', '#cfc3b1', '#e2d2bf', '#c7bdae', '#dfd5c4'],
+  flatRoof: ['#a9a49c', '#9e998f', '#b2ada4', '#a39c91'],
+};
+
+// ---- ジオメトリをためる入れ物 ----
+function bucket() { return { pos: [], nor: [], col: [], uv: [] }; }
+const BK = { house: bucket(), apt: bucket(), shop: bucket(), roof: bucket() };
+const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _n = new THREE.Vector3();
+// 三角形を1枚。ref の向きに法線がそろうよう必要なら裏返す
+function tri(bk, A, B, Cc, color, ref, uvs = [[0, 0], [0, 0], [0, 0]]) {
+  _a.set(...A); _b.set(...B); _c.set(...Cc);
+  _n.subVectors(_b, _a).cross(_c.clone().sub(_a)).normalize();
+  let P = [A, B, Cc], U = uvs;
+  if (_n.dot(ref) < 0) { P = [A, Cc, B]; U = [uvs[0], uvs[2], uvs[1]]; _n.negate(); }
+  P.forEach((p, i) => { bk.pos.push(...p); bk.nor.push(_n.x, _n.y, _n.z); bk.col.push(color.r, color.g, color.b); bk.uv.push(...U[i]); });
+}
+const W3 = (e, y, n) => [e, y, -n];
+function wallRing(bk, poly, y0, y1, color, bay) {
+  const [cx, cy] = centroid(poly); let acc = 0;
+  for (let i = 0; i < poly.length; i++) {
+    const [e0, n0] = poly[i], [e1, n1] = poly[(i + 1) % poly.length], L = Math.hypot(e1 - e0, n1 - n0);
+    if (L < 0.05) continue;
+    const mx = (e0 + e1) / 2, my = (n0 + n1) / 2;
+    const ref = new THREE.Vector3(mx - cx, 0, -(my - cy));
+    const u0 = acc / bay, u1 = (acc + L) / bay, v0 = y0 / FLOOR, v1 = y1 / FLOOR;
+    tri(bk, W3(e0, y0, n0), W3(e1, y0, n1), W3(e1, y1, n1), color, ref, [[u0, v0], [u1, v0], [u1, v1]]);
+    tri(bk, W3(e0, y0, n0), W3(e1, y1, n1), W3(e0, y1, n0), color, ref, [[u0, v0], [u1, v1], [u0, v1]]);
+    acc += L;
+  }
+}
+function flatRoof(bk, poly, y, color) {
+  const contour = poly.map(([e, n]) => new THREE.Vector2(e, n));
+  const tris = THREE.ShapeUtils.triangulateShape(contour, []);
+  const up = new THREE.Vector3(0, 1, 0);
+  tris.forEach(([i, j, k]) => tri(bk, W3(...poly[i].slice(0, 1), y, poly[i][1]), W3(poly[j][0], y, poly[j][1]), W3(poly[k][0], y, poly[k][1]), color, up));
+}
+function minRect(pts) {
+  let best = null;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length], ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+    const c = Math.cos(ang), s = Math.sin(ang);
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    pts.forEach(([x, y]) => { const u = x * c + y * s, v = -x * s + y * c; x0 = Math.min(x0, u); x1 = Math.max(x1, u); y0 = Math.min(y0, v); y1 = Math.max(y1, v); });
+    const A = (x1 - x0) * (y1 - y0); if (!best || A < best.A) best = { A, c, s, x0, x1, y0, y1 };
+  }
+  return best;
+}
+// 切妻屋根（外接長方形の長辺方向に棟）
+function gableRoof(wallBk, poly, yTop, roofColor, wallColor) {
+  const r = minRect(poly), o = 0.35;
+  let { c, s, x0, x1, y0, y1 } = r; x0 -= o; x1 += o; y0 -= o; y1 += o;
+  const P = (u, v, y) => W3(u * c - v * s, y, u * s + v * c);
+  const along = (x1 - x0) >= (y1 - y0), short = along ? (y1 - y0) : (x1 - x0);
+  const rh = Math.min(short * 0.36, 2.4), ye = yTop - 0.12, yr = yTop + rh;
+  const up = new THREE.Vector3(0, 1, 0);
+  const cxu = (x0 + x1) / 2, cyv = (y0 + y1) / 2, ctr = P(cxu, cyv, 0);
+  const out = (p) => new THREE.Vector3(p[0] - ctr[0], 0, p[2] - ctr[2]);
+  const gab = [[0.5, 0.97], [0.5, 0.97], [0.5, 0.97]];
+  if (along) {
+    const A = P(x0, y0, ye), Bq = P(x1, y0, ye), Cq = P(x1, y1, ye), D = P(x0, y1, ye), R0 = P(x0, cyv, yr), R1 = P(x1, cyv, yr);
+    tri(BK.roof, A, Bq, R1, roofColor, up); tri(BK.roof, A, R1, R0, roofColor, up);
+    tri(BK.roof, Cq, D, R0, roofColor, up); tri(BK.roof, Cq, R0, R1, roofColor, up);
+    tri(wallBk, D, A, R0, wallColor, out(R0), gab); tri(wallBk, Bq, Cq, R1, wallColor, out(R1), gab);
+  } else {
+    const A = P(x0, y0, ye), Bq = P(x1, y0, ye), Cq = P(x1, y1, ye), D = P(x0, y1, ye), R0 = P(cxu, y0, yr), R1 = P(cxu, y1, yr);
+    tri(BK.roof, Bq, Cq, R1, roofColor, up); tri(BK.roof, Bq, R1, R0, roofColor, up);
+    tri(BK.roof, D, A, R0, roofColor, up); tri(BK.roof, D, R0, R1, roofColor, up);
+    tri(wallBk, A, Bq, R0, wallColor, out(R0), gab); tri(wallBk, Cq, D, R1, wallColor, out(R1), gab);
+  }
+}
+// ---- 建物 ----
+const BUILT = [];                                   // [poly, bbox] 木や電柱の当たり判定用
+const roofBoxes = [];
+const cA = new THREE.Color(), cB = new THREE.Color();
+function addBuilding(poly, kind, floors, gable, k) {
+  const [cx, cy] = centroid(poly), area = polyArea(poly);
+  const h = floors * FLOOR + (kind === 'shop' ? 0.4 : 0);
+  const wallCol = cA.set(pick(kind === 'house' ? PAL.houseWall : kind === 'apt' ? PAL.aptWall : PAL.shopWall, k + 3)).clone();
+  wallRing(BK[kind], poly, 0, h, wallCol, kind === 'apt' ? 3.2 : kind === 'shop' ? 3.6 : 3.0);
+  if (gable) gableRoof(BK[kind], poly, h, cB.set(pick(PAL.houseRoof, k + 7)).clone(), wallCol);
+  else {
+    const rc = cB.set(pick(PAL.flatRoof, k + 5)).clone();
+    flatRoof(BK.roof, poly, h, rc);
+    wallRing(BK.roof, poly, h, h + 0.45, rc.clone().multiplyScalar(0.92), 100);    // 屋上のパラペット
+    if (area > 90) {                                                             // 室外機・水槽・塔屋
+      const nb = Math.min(3, 1 + Math.floor(area / 260));
+      for (let i = 0; i < nb; i++) {
+        const ex = cx + (hashf(k + i * 3) - 0.5) * Math.sqrt(area) * 0.5, ny = cy + (hashf(k + i * 5 + 1) - 0.5) * Math.sqrt(area) * 0.5;
+        if (!pip(ex, ny, poly)) continue;
+        const w = 1.2 + hashf(k + i) * 2.2, hh = 0.7 + hashf(k + i * 7) * 1.6;
+        roofBoxes.push([ex, h, ny, w, hh, w * (0.6 + hashf(k + 11 * i) * 0.6)]);
+      }
+    }
+  }
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; poly.forEach(([e, n]) => { x0 = Math.min(x0, e); x1 = Math.max(x1, e); y0 = Math.min(y0, n); y1 = Math.max(y1, n); });
+  BUILT.push([poly, [x0, x1, y0, y1], h]);
+}
+TOWN.B.forEach(([type, lv, k, flat]) => {
+  const poly = pairs(flat);
+  const [cx, cy] = centroid(poly);
+  if (blocked(cx, cy) || poly.some(([e, n]) => blocked(e, n))) return;
+  if (PARKS.some(p => pip(cx, cy, p) || poly.some(([e, n]) => pip(e, n, p)))) return;   // 公園の中には建てない
+  const area = polyArea(poly), real = area / 0.5625;
+  let floors, kind, gable = false;
+  const r = hashf(k);
+  if (type === 1) { floors = real > 160 ? 3 : 2; kind = 'house'; gable = poly.length <= 10; }
+  else if (type === 2) { floors = real < 150 ? 3 : real < 450 ? 4 + Math.round(r * 2) : 6 + Math.round(r * 4); kind = 'apt'; }
+  else if (type === 3) { floors = real > 900 ? 3 : 2 + Math.round(r * 2); kind = 'shop'; }
+  else if (type === 4) { floors = 2; kind = 'shop'; }
+  else if (type === 5) { floors = 4 + Math.round(r * 2); kind = 'apt'; }
+  else if (type === 6) { floors = 1; kind = 'house'; gable = true; }
+  else {
+    if (real < 110) { floors = 2; kind = 'house'; gable = poly.length <= 10 && r < 0.8; }
+    else if (real < 220) { floors = 2 + (r < 0.4 ? 1 : 0); kind = r < 0.5 ? 'house' : 'shop'; gable = kind === 'house' && poly.length <= 8; }
+    else if (real < 600) { floors = 3 + Math.round(r * 2); kind = r < 0.6 ? 'apt' : 'shop'; }
+    else { floors = 4 + Math.round(r * 4); kind = 'apt'; }
+  }
+  if (lv) floors = lv;
+  addBuilding(poly, kind, floors, gable, k);
+});
+const OSM_COUNT = BUILT.length;
+function bucketMesh(bk, mat) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(bk.pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(bk.nor, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(bk.col, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(bk.uv, 2));
+  const m = new THREE.Mesh(g, mat); m.castShadow = m.receiveShadow = true; st.add(m); return m;
+}
+// 夜の窓明かり：2ベイ×2階を1枚にして、点いている窓と消えている窓を混ぜる
+function nightTex(lit, draw) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 256; const x = cv.getContext('2d');
+  x.fillStyle = '#000'; x.fillRect(0, 0, 256, 256);
+  [[0, 0], [128, 0], [0, 128], [128, 128]].forEach(([ox, oy], i) => { if (!lit[i]) return; x.save(); x.translate(ox, oy); draw(x, i); x.restore(); });
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(0.5, 0.5); return t;
+}
+const NTEX = {
+  house: nightTex([1, 0, 0, 1], (x) => { x.fillStyle = '#ffcf86'; x.fillRect(40, 42, 48, 38); }),
+  apt: nightTex([1, 1, 0, 1], (x, i) => { x.fillStyle = i === 1 ? '#e8f0ff' : '#ffd497'; x.fillRect(14, 26, 100, 58); }),
+  shop: nightTex([1, 1, 1, 0], (x) => { x.fillStyle = '#fff0cf'; x.fillRect(8, 24, 112, 70); }),
+};
+const townMat = (map, em) => { const m = std(null, { vertexColors: true, map, roughness: 0.92, emissive: '#ffffff', emissiveMap: em, emissiveIntensity: 0 }); NIGHT.push([m, 0, 0.95]); return m; };
+function inBuilding(e, n, pad = 0) {
+  return BUILT.some(([p, [x0, x1, y0, y1]]) => e > x0 - pad && e < x1 + pad && n > y0 - pad && n < y1 + pad && (pad > 0 || pip(e, n, p)));
+}
+
+// ---- 地面の区画：公園・駐車場 ----
+function groundPatch(flat, color, y) {
+  const pts = pairs(flat).map(([e, n]) => new THREE.Vector2(e, n));
+  const g = new THREE.ShapeGeometry(new THREE.Shape(pts)); g.rotateX(-Math.PI / 2); g.translate(0, y, 0);
+  const m = new THREE.Mesh(g, std(color)); m.receiveShadow = true; st.add(m);
+}
+TOWN.PARK.forEach(f => groundPatch(f, '#9fae80', 0.03));
+TOWN.PARKING.forEach(f => groundPatch(f, '#8f8c86', 0.04));
+
+// ---- 街の道路（線路に近いところは切る＝踏切や高架でつながる道以外） ----
+const TOWN_ROADS = [];
+{
+  const W = { 1: 4.2, 2: 5.4, 3: 2.8, 4: 3.6 }, ROAD_Y = { 3: 0.05, 1: 0.06, 2: 0.07, 4: 0.08 };
+  const COL = { 1: '#8a8781', 2: '#85827c', 3: '#97938c', 4: '#b8ad9b' };
+  const nearTrack = (q) => [[C, 4.6], [M, 4.6], [P5, 3]].some(([p, r]) => { const k = p.at(p.nearestS(q.e, q.n)); return Math.hypot(k.e - q.e, k.n - q.n) < r; });
+  const geos = { 1: [], 2: [], 3: [], 4: [] };
+  TOWN.ROADS.forEach(([cls, flat]) => {
+    const path = Path.poly(pairs(flat)); if (path.length < 2) return;
+    let run = [];
+    const flush = () => { if (run.length > 2) { const p = Path.from(run); geos[cls].push(upNormals(sweep(p, [[-W[cls] / 2, ROAD_Y[cls]], [W[cls] / 2, ROAD_Y[cls]]], { step: 1 }))); TOWN_ROADS.push([p, W[cls], cls]); } run = []; };
+    path.pts.forEach(q => { if (nearTrack(q) || Math.abs(q.e) > BS + 6 || Math.abs(q.n) > BS + 6) flush(); else run.push({ e: q.e, n: q.n, h: q.h }); });
+    flush();
+  });
+  Object.entries(geos).forEach(([cls, gs]) => {
+    if (!gs.length) return;
+    const m = new THREE.Mesh(mergeGeometries(gs), std(COL[cls], { side: THREE.DoubleSide }));   // 急な角で帯が裏返っても穴にならない
+    if (+cls === 4) { m.material.emissive.set('#ffd9a0'); NIGHT.push([m.material, 0, 0.32]); }      // 商店街の通りは夜に明るく
+    m.receiveShadow = true; st.add(m);
+  });
+}
+
+// ---- 空き地に建物を足す（OSMの建物の約半分＝全体で約1.5倍） ----
+{
+  const target = Math.round(OSM_COUNT * 0.5);
+  const arcLines = Object.values(TOWN.ARC).flat().map(f => Path.poly(pairs(f), 2));
+  const roadInfo = (e, n) => {
+    let best = null;
+    TOWN_ROADS.forEach(([p, w]) => { const k = p.at(p.nearestS(e, n)), d = Math.hypot(k.e - e, k.n - n) - w / 2; if (!best || d < best.d) best = { d, h: k.h }; });
+    return best;
+  };
+  const nearArc = (e, n) => arcLines.some(p => { const k = p.at(p.nearestS(e, n)); return Math.hypot(k.e - e, k.n - n) < 9; });
+  const free = (e, n) => Math.abs(e) < BS - 1.5 && Math.abs(n) < BS - 1.5 && !blocked(e, n, 0.3) && !inBuilding(e, n)
+    && !PARKS.some(p => pip(e, n, p)) && !PARKINGS.some(p => pip(e, n, p));
+  const cands = [];
+  for (let e = -BS + 3; e < BS - 3; e += 2.6) for (let n = -BS + 3; n < BS - 3; n += 2.6) cands.push([e + (hashf(e * 3.1 + n) - 0.5) * 1.2, n + (hashf(e + n * 2.3) - 0.5) * 1.2, hashf(e * 1.7 + n * 3.9)]);
+  cands.sort((a, b) => a[2] - b[2]);
+  let added = 0;
+  for (const [e, n, r] of cands) {
+    if (added >= target) break;
+    if (!free(e, n)) continue;
+    const ri = roadInfo(e, n); if (!ri || ri.d < 1.6 || ri.d > 40) continue;
+    const shop = nearArc(e, n), house = !shop && r < 0.78;
+    const r2 = hashf(r * 77.7), sz = added < target * 0.45 ? 1 : 0.78;                 // 後半は小さめの家で隙間を埋める
+    const w = (shop ? 4.6 + r2 * 2.6 : house ? 4.8 + r2 * 2.6 : 7 + r2 * 3.5) * sz, d = (shop ? 6.4 + r2 * 3 : house ? 5.6 + r2 * 3 : 8 + r2 * 3.5) * sz;
+    const c = Math.cos(ri.h), sn = Math.sin(ri.h);              // 道路の向きにそろえる
+    const P = (u, v) => [e + u * sn + v * c, n + u * c - v * sn];
+    const poly = [P(-d / 2, -w / 2), P(d / 2, -w / 2), P(d / 2, w / 2), P(-d / 2, w / 2)];
+    const probe = [...poly, P(0, 0), P(0, -w / 2), P(0, w / 2), P(-d / 2, 0), P(d / 2, 0)];
+    if (!probe.every(([x, y]) => free(x, y))) continue;
+    if (probe.some(([x, y]) => { const q = roadInfo(x, y); return q && q.d < 0.45; })) continue;
+    // 既存の建物の角が入り込まないか
+    if (BUILT.some(([bp, [x0, x1, y0, y1]]) => x1 > e - 9 && x0 < e + 9 && y1 > n - 9 && y0 < n + 9 && bp.some(([x, y]) => pip(x, y, poly)))) continue;
+    const k = 500 + added * 7;
+    if (shop) addBuilding(poly, 'shop', 2 + Math.round(hashf(k) * 1), false, k);
+    else if (house) addBuilding(poly, 'house', 2, true, k);
+    else addBuilding(poly, 'apt', 3 + Math.round(hashf(k) * 2), false, k);
+    added++;
+  }
+}
+// ---- 地面がむき出しの所を埋める：まず家を建て、残りは駐車場か舗装に ----
+const GROUND_LOTS = [];                               // 駐車場のマス（段階3で車を出し入れできるように）
+{
+  const RES = 0.5, MW = Math.ceil(2 * BS / RES);      // 0.5 単位 / 画素の占有マップ
+  const mc = document.createElement('canvas'); mc.width = mc.height = MW; const mx = mc.getContext('2d');
+  const toPx = (e, n) => [(e + BS) / RES, (BS - n) / RES];
+  mx.fillStyle = mx.strokeStyle = '#fff'; mx.lineCap = mx.lineJoin = 'round';
+  const fillPoly = (pts) => { mx.beginPath(); pts.forEach(([e, n], i) => { const [x, y] = toPx(e, n); i ? mx.lineTo(x, y) : mx.moveTo(x, y); }); mx.closePath(); mx.fill(); };
+  const strokePath = (path, w) => { mx.lineWidth = w / RES; mx.beginPath(); for (let s = 0; s <= path.length; s += 1) { const q = path.at(s), [x, y] = toPx(q.e, q.n); s ? mx.lineTo(x, y) : mx.moveTo(x, y); } mx.stroke(); };
+  BUILT.forEach(([p]) => fillPoly(p));
+  TOWN_ROADS.forEach(([p, w]) => strokePath(p, w + 0.8));
+  MODEL_ROADS.forEach(([p, r]) => strokePath(p, Math.min(2 * r, 16)));
+  [...PARKS, ...PARKINGS, ...PLAT_POLYS].forEach(fillPoly);
+  TRACKS.forEach(p => strokePath(p, 5));
+  [WEST_GATE, EAST_GATE].forEach(g => { const [x, y] = toPx(g.e, g.n); mx.beginPath(); mx.arc(x, y, 8 / RES, 0, Math.PI * 2); mx.fill(); });
+  const data = mx.getImageData(0, 0, MW, MW).data, occ = new Uint8Array(MW * MW);
+  for (let i = 0; i < occ.length; i++) occ[i] = data[i * 4 + 3] > 20 ? 1 : 0;
+  const at = (e, n) => { const [x, y] = toPx(e, n), xi = x | 0, yi = y | 0; return xi < 2 || yi < 2 || xi >= MW - 2 || yi >= MW - 2 ? 1 : occ[yi * MW + xi]; };
+  const mark = (poly) => {
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    poly.forEach(([e, n]) => { const [x, y] = toPx(e, n); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); });
+    for (let y = Math.max(0, y0 - 2 | 0); y <= Math.min(MW - 1, y1 + 2); y++) for (let x = Math.max(0, x0 - 2 | 0); x <= Math.min(MW - 1, x1 + 2); x++) occ[y * MW + x] = 1;
+  };
+  // 1) 空いている所に小さな家（近くの道路の向きにそろえる）
+  const roadDir = (e, n) => {
+    let best = null;
+    TOWN_ROADS.forEach(([p, w]) => { const k = p.at(p.nearestS(e, n)), d = Math.hypot(k.e - e, k.n - n); if (!best || d < best.d) best = { d, h: k.h }; });
+    return best ? best.h : 0;
+  };
+  let extra = 0;
+  for (let e = -BS + 4; e < BS - 4; e += 2.5) for (let n = -BS + 4; n < BS - 4; n += 2.5) {
+    if (at(e, n) || hashf(e * 4.1 + n * 1.3) > 0.62) continue;
+    if (hashf(Math.floor(e / 14) * 31.7 + Math.floor(n / 14) * 7.9) < 0.22) continue;   // 一部の区画は駐車場に残す
+    const r = hashf(e * 0.7 + n * 5.3), w = 4.6 + r * 2.2, d = 5.4 + hashf(e + n) * 2.6, h = roadDir(e, n);
+    const c = Math.cos(h), sn = Math.sin(h), P = (u, v) => [e + u * sn + v * c, n + u * c - v * sn];
+    const poly = [P(-d / 2, -w / 2), P(d / 2, -w / 2), P(d / 2, w / 2), P(-d / 2, w / 2)];
+    let ok = true;
+    for (let u = -0.5; u <= 0.5 && ok; u += 0.25) for (let v = -0.5; v <= 0.5 && ok; v += 0.25) { const [x, y] = P(u * (d + 1), v * (w + 1)); if (at(x, y)) ok = false; }
+    if (!ok) continue;
+    const k = 2000 + extra * 13;
+    addBuilding(poly, r < 0.82 ? 'house' : 'apt', r < 0.82 ? 2 : 3, r < 0.82, k);
+    mark(poly); extra++;
+  }
+  // 2) 残りは舗装。まとまった空きは駐車場（白線つき）にする
+  const TW = 1024, sc = TW / (2 * BS), tc = document.createElement('canvas'); tc.width = tc.height = TW; const tx = tc.getContext('2d');
+  tx.fillStyle = '#a9a49b'; tx.fillRect(0, 0, TW, TW);
+  for (let i = 0; i < 9000; i++) { tx.fillStyle = `rgba(${hashf(i) > 0.5 ? '255,255,255' : '60,55,50'},${0.03 + hashf(i * 3) * 0.04})`; tx.fillRect(hashf(i * 7) * TW, hashf(i * 11) * TW, 3, 3); }
+  const CELL = 2.4, NC = Math.floor(2 * BS / CELL);
+  const free = (i, j) => { if (i < 0 || j < 0 || i >= NC || j >= NC) return false; const e = -BS + (i + 0.5) * CELL, n = BS - (j + 0.5) * CELL;
+    for (let a = -0.4; a <= 0.4; a += 0.4) for (let b = -0.4; b <= 0.4; b += 0.4) if (at(e + a * CELL, n + b * CELL)) return false; return true; };
+  // 2×2 マス（約 5m 四方）以上あいていれば小さな月極駐車場に
+  const asph = new Uint8Array(NC * NC), used = new Uint8Array(NC * NC);
+  for (let j = 0; j < NC - 1; j++) for (let i = 0; i < NC - 1; i++)
+    if (free(i, j) && free(i + 1, j) && free(i, j + 1) && free(i + 1, j + 1)) [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(([a, b]) => asph[(j + b) * NC + i + a] = 1);
+  const cpx = CELL * sc;
+  for (let j = 0; j < NC; j++) for (let i = 0; i < NC; i++) if (asph[j * NC + i]) { tx.fillStyle = '#8c8984'; tx.fillRect(i * cpx - 0.5, j * cpx - 0.5, cpx + 1, cpx + 1); }
+  tx.strokeStyle = 'rgba(245,242,235,.85)'; tx.lineWidth = 1.2;
+  for (let j = 0; j < NC; j++) for (let i = 0; i < NC; i++) if (asph[j * NC + i] && asph[j * NC + i - 1] && i > 0) {
+    tx.beginPath(); tx.moveTo(i * cpx, j * cpx + cpx * 0.12); tx.lineTo(i * cpx, j * cpx + cpx * 0.88); tx.stroke();
+  }
+  for (let j = 0; j < NC - 1; j++) for (let i = 0; i < NC; i++) {                         // 縦2マスに1台
+    if (!asph[j * NC + i] || !asph[(j + 1) * NC + i] || used[j * NC + i] || used[(j + 1) * NC + i] || hashf(i * 7.3 + j * 3.1) > 0.6) continue;
+    used[j * NC + i] = used[(j + 1) * NC + i] = 1;
+    GROUND_LOTS.push([-BS + (i + 0.5) * CELL, BS - (j + 1) * CELL]);
+  }
+  // ホームの中（階段の穴）だけは抜く
+  tx.globalCompositeOperation = 'destination-out'; tx.fillStyle = '#000';
+  PLAT_POLYS.forEach(p => { tx.beginPath(); p.forEach(([e, n], i) => { const x = (e + BS) * sc, y = (BS - n) * sc; i ? tx.lineTo(x, y) : tx.moveTo(x, y); }); tx.closePath(); tx.fill(); });
+  const tex = new THREE.CanvasTexture(tc); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const g = new THREE.PlaneGeometry(2 * BS, 2 * BS); g.rotateX(-Math.PI / 2); g.translate(0, 0.012, 0);
+  const pave = new THREE.Mesh(g, std('#ffffff', { map: tex, alphaTest: 0.5, roughness: 0.95 })); pave.receiveShadow = true; st.add(pave);
+  // 停めてある車
+  const cars = new THREE.InstancedMesh(new RoundedBoxGeometry(1.75, 1.2, 3.4, 2, 0.35), std('#ffffff', { roughness: 0.5, metalness: 0.15 }), GROUND_LOTS.length);
+  const o = new THREE.Object3D(), cc = new THREE.Color();
+  const carCols = ['#e9e6df', '#2f3236', '#8c9096', '#6e2a2a', '#3d4a5c', '#d8d2c2', '#5b6158', '#b9bcc0'];
+  GROUND_LOTS.forEach(([e, n], i) => {
+    o.position.set(e, 0.62, -n); o.rotation.set(0, 0, 0); o.updateMatrix(); cars.setMatrixAt(i, o.matrix);
+    cars.setColorAt(i, cc.set(carCols[Math.floor(hashf(i * 5.7) * carCols.length)]));
+  });
+  cars.castShadow = true; st.add(cars);
+}
+bucketMesh(BK.house, townMat(TEX.house, NTEX.house)); bucketMesh(BK.apt, townMat(TEX.apt, NTEX.apt)); bucketMesh(BK.shop, townMat(TEX.shop, NTEX.shop));
+bucketMesh(BK.roof, std(null, { vertexColors: true, roughness: 0.85 }));
+{
+  const m = new THREE.InstancedMesh(new RoundedBoxGeometry(1, 1, 1, 1, 0.08), std('#c9c5bd'), roofBoxes.length);
+  const o = new THREE.Object3D();
+  roofBoxes.forEach(([e, y, n, w, h, d], i) => { o.position.set(e, y + h / 2, -n); o.scale.set(w, h, d); o.rotation.y = hashf(i) * 3; o.updateMatrix(); m.setMatrixAt(i, o.matrix); });
+  m.castShadow = true; st.add(m);
+}
+// ---- 商店街のアーケード（屋根・柱・袖看板） ----
+const SHOPS = ['喫茶ミモザ', '八百屋まるなか', '古書月灯', '豆腐の白川', '花屋こもれび', '洋菓子ルポ', '和菓子さくら庵', '眼鏡タイムス',
+  '定食ひなた', '中華そば麦', '鮮魚うおけん', '精肉やまと', '薬局みどり', '文具ことのは', '酒舗一升', '呉服あやめ',
+  '珈琲灯台', 'パン工房こむぎ', '本屋しおり', '金物かなめ', '自転車りんりん', '写真館はれま', '理容きつつき', '甘味しろくま',
+  '惣菜おかめ', '靴のつばさ', '茶舗みずほ', '雑貨ことり', '果物まどか', '布団ねむの木', '手芸いとや', '居酒屋ふくろう'];
+const SIGN_BG = ['#7a2f2c', '#2f4a5a', '#e9dfc8', '#3e5a3a', '#c9a24a', '#5a3b52', '#f1ebe0', '#2c2c2c', '#8a5a2b', '#456b77'];
+const signAtlas = (() => {
+  const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 512; const x = cv.getContext('2d');
+  SHOPS.forEach((name, i) => {
+    const cx = (i % 16) * 64, cy = Math.floor(i / 16) * 256, bg = SIGN_BG[i % SIGN_BG.length];
+    x.fillStyle = bg; x.fillRect(cx + 4, cy + 4, 56, 248);
+    x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 2; x.strokeRect(cx + 8, cy + 8, 48, 240);
+    const light = ['#e9dfc8', '#f1ebe0', '#c9a24a'].includes(bg);
+    x.fillStyle = light ? '#3a2e26' : '#f6efe2';
+    const chars = [...name], fs = Math.min(38, 224 / chars.length);
+    x.font = `600 ${fs}px "Shippori Mincho", "Hiragino Mincho ProN", serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+    chars.forEach((ch, j) => x.fillText(ch, cx + 32, cy + 128 + (j - (chars.length - 1) / 2) * fs * 1.02));
+  });
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+})();
+// 駅のホーム屋根（線路の近く）は自前で作るので除き、商店街のアーケードだけ残す
+const ROOFS = TOWN.ROOF.map(pairs).filter(p => { const [cx, cy] = centroid(p); return !blocked(cx, cy, 2) && p.filter(([e, n]) => blocked(e, n)).length < p.length * 0.25; });
+const ARC_Y = 6.2;
+{
+  // 屋根：すりガラス風の半透明
+  const roofMat = std(STATION_ROOF, { roughness: 0.6, side: THREE.DoubleSide });
+  const ribMat = std('#8f948e', { roughness: 0.6 });
+  const posts = [];
+  ROOFS.forEach(p => {
+    const sh = new THREE.Shape(p.map(([e, n]) => new THREE.Vector2(e, n)));
+    const g = new THREE.ExtrudeGeometry(sh, { depth: 0.25, bevelEnabled: false }); g.rotateX(-Math.PI / 2); g.translate(0, ARC_Y, 0);
+    const m = new THREE.Mesh(g, roofMat); m.castShadow = m.receiveShadow = true; st.add(m);
+    // 縁の梁と柱
+    const ring = [...p, p[0]];
+    const rg = sweep(Path.poly(ring, 1), [[-0.18, ARC_Y - 0.35], [-0.18, ARC_Y + 0.05], [0.18, ARC_Y + 0.05], [0.18, ARC_Y - 0.35]], { step: 1 });
+    const rm = new THREE.Mesh(rg, ribMat); rm.castShadow = true; st.add(rm);
+    const rp = Path.poly(ring, 1);
+    for (let s = 0; s < rp.length; s += 5.5) { const q = rp.at(s); if (!blocked(q.e, q.n)) posts.push([q.e, q.n]); }
+  });
+  const pm = new THREE.InstancedMesh(new THREE.BoxGeometry(0.22, ARC_Y, 0.22), ribMat, posts.length);
+  const o = new THREE.Object3D();
+  posts.forEach(([e, n], i) => { o.position.set(e, ARC_Y / 2, -n); o.updateMatrix(); pm.setMatrixAt(i, o.matrix); });
+  pm.castShadow = true; st.add(pm);
+  // 袖看板：商店街の通りに沿って左右交互に
+  const pos = [], uv = [], nor = [];
+  let si = 0;
+  Object.values(TOWN.ARC).flat().forEach(flat => {
+    const path = Path.poly(pairs(flat), 1);
+    for (let s = 2; s < path.length; s += 5.2) {
+      const q = path.at(s), side = (si % 2 ? 1 : -1), lat = side * 1.45;
+      const e = q.e + lat * Math.cos(q.h), n = q.n - lat * Math.sin(q.h);
+      if (Math.abs(e) > BS - 1 || Math.abs(n) > BS - 1 || blocked(e, n, 1) || !ROOFS.some(p => pip(e, n, p))) continue;
+      // 板の面は通りの向きに直交（歩く人から読める向き）
+      const i = si++ % SHOPS.length, u0 = (i % 16) / 16, u1 = u0 + 1 / 16, v1 = 1 - Math.floor(i / 16) * 0.5, v0 = v1 - 0.5;
+      const ax = Math.cos(q.h) * 0.45, an = -Math.sin(q.h) * 0.45, y0 = 3.0, y1 = 5.4;
+      const P0 = W3(e - ax, y0, n - an), P1 = W3(e + ax, y0, n + an), P2 = W3(e + ax, y1, n + an), P3q = W3(e - ax, y1, n - an);
+      [P0, P1, P2, P0, P2, P3q].forEach(v => pos.push(...v));
+      [[u0, v0], [u1, v0], [u1, v1], [u0, v0], [u1, v1], [u0, v1]].forEach(t => uv.push(...t));
+      for (let j = 0; j < 6; j++) nor.push(Math.sin(q.h), 0, -Math.cos(q.h));
+    }
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  const sm = new THREE.Mesh(g, std('#ffffff', { map: signAtlas, side: THREE.DoubleSide, roughness: 0.7, emissive: '#ffffff', emissiveMap: signAtlas, emissiveIntensity: 0.08 }));
+  NIGHT.push([sm.material, 0.08, 0.95]);
+  st.add(sm);
+}
+
+// ---- 駅：ホームの屋根・点字ブロック・駅舎の看板 ----
+{
+  const roofMat = std(STATION_ROOF, { roughness: 0.6 }), postMat = std('#6d726d', { roughness: 0.6 });
+  const yR = Y_PLAT + 3.4, posts = [];
+  function canopy(path, s0, s1, w) {
+    const p = path.slice(s0, s1);
+    const g = sweep(p, [[-w / 2, yR - 0.18], [-w / 2, yR], [0, yR + 0.32], [w / 2, yR], [w / 2, yR - 0.18], [-w / 2, yR - 0.18]], { step: 1 });
+    const m = new THREE.Mesh(g, roofMat); m.castShadow = m.receiveShadow = true; m.material.side = THREE.DoubleSide; st.add(m);
+    for (let s = 2; s < p.length - 1; s += 8) { const q = p.at(s); posts.push([q.e, q.n]); }
+  }
+  const sN = (p, n) => p.sAtN(n);
+  canopy(P1.offset(-4.1), sN(P1.offset(-4.1), -45), sN(P1.offset(-4.1), 86), 4.6);              // 1号線
+  // 中央ホームの大屋根：2号線ホーム・東改札・5号線ホームをひとつながりに覆う（航空写真の形）
+  //  5号線の線路の上は車止めの少し先まで覆い、その先は細く空ける
+  {
+    const yB = Y_PLAT + 4.2, rs = ISL_SHAPE_AT(9);
+    const g = new THREE.ExtrudeGeometry(rs, { depth: 0.26, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.3, bevelSegments: 1, curveSegments: 2 });
+    g.rotateX(-Math.PI / 2); g.translate(0, yB, 0);
+    const m = new THREE.Mesh(g, roofMat); m.castShadow = m.receiveShadow = true; st.add(m);
+    const isl = PLAT_POLYS[2], outline = rs.getPoints().map(v => [v.x, v.y]);
+    const bigPosts = [];
+    [[P2.offset(4.4), sN(P2.offset(4.4), ISL_N0 + 8), sN(P2.offset(4.4), PL2_N - 2)], [P5.offset(-3.4), 3, L5P - 2], [P5.offset(3.4), 3, ISL_STIP - 2],
+     [P3.offset(-4.3), sN(P3.offset(-4.3), ISL_N0 + 8), sN(P3.offset(-4.3), 24)]].forEach(([p, s0, s1]) => {
+      for (let s = s0; s < s1; s += 9) { const q = p.at(s); if (pip(q.e, q.n, isl) && pip(q.e, q.n, outline)) bigPosts.push([q.e, q.n]); }
+    });
+    const pm2 = new THREE.InstancedMesh(new THREE.BoxGeometry(0.26, yB - Y_PLAT, 0.26), postMat, bigPosts.length);
+    const o2 = new THREE.Object3D();
+    bigPosts.forEach(([e, n], i) => { o2.position.set(e, (Y_PLAT + yB) / 2, -n); o2.updateMatrix(); pm2.setMatrixAt(i, o2.matrix); });
+    pm2.castShadow = true; st.add(pm2);
+  }
+  canopy(P4.offset(4.1), sN(P4.offset(4.1), -50), sN(P4.offset(4.1), 30), 4.0);                  // 4号線
+  const pm = new THREE.InstancedMesh(new THREE.BoxGeometry(0.24, yR - Y_PLAT, 0.24), postMat, posts.length);
+  const o = new THREE.Object3D();
+  posts.forEach(([e, n], i) => { o.position.set(e, (Y_PLAT + yR) / 2, -n); o.updateMatrix(); pm.setMatrixAt(i, o.matrix); });
+  pm.castShadow = true; st.add(pm);
+  // 点字ブロック（ホームの縁から少し内側）
+  const tact = [];
+  const strip = (p, s0, s1) => tact.push(sweep(p.slice(s0, s1), [[-0.16, Y_PLAT + 0.015], [0.16, Y_PLAT + 0.015]], { step: 1 }));
+  strip(P1.offset(-2.4), sN(P1.offset(-2.4), PL1.n0 + 1), sN(P1.offset(-2.4), PL1.n1 - 1));
+  strip(P2.offset(2.4), sN(P2.offset(2.4), ISL_N0 + 4), sN(P2.offset(2.4), PL2_N - 1));
+  strip(P3.offset(-2.4), sN(P3.offset(-2.4), ISL_N0 + 4), sN(P3.offset(-2.4), 30));
+  strip(P5.offset(-2.4), -0.5, L5P - 1); strip(P5.offset(2.4), -0.5, 48);
+  strip(P4.offset(2.4), sN(P4.offset(2.4), PL4.n0 + 1), sN(P4.offset(2.4), PL4.n1 - 1));
+  const tm = new THREE.Mesh(mergeGeometries(tact), std('#e2b93b', { polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+  st.add(tm);
+  // 駅舎の看板（駅名と改札名）
+  function signBoard(text, sub, e, y, n, rotY, w = 6) {
+    const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128; const x = cv.getContext('2d');
+    x.fillStyle = '#f4efe6'; x.fillRect(0, 0, 512, 128); x.fillStyle = '#5a1b20'; x.fillRect(0, 0, 14, 128);
+    x.fillStyle = '#2f2a26'; x.font = '600 52px "Shippori Mincho", "Hiragino Mincho ProN", serif'; x.textBaseline = 'middle';
+    x.fillText(text, 36, 52); x.font = 'italic 500 30px "Cormorant Garamond", serif'; x.fillStyle = '#6f645a'; x.fillText(sub, 38, 102);
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w / 4), std('#ffffff', { map: t, emissive: '#ffffff', emissiveMap: t, emissiveIntensity: 0.12 }));
+    NIGHT.push([m.material, 0.12, 1.0]);
+    m.position.set(e, y, -n); m.rotation.y = rotY; st.add(m);
+  }
+  // 西改札：西向きの面（アーケード側）
+  const wg = WEST_GATE, wx = -Math.cos(wg.h), wn = Math.sin(wg.h);
+  signBoard('石橋阪大前駅 西口', 'Ishibashi Handai-mae  West', wg.e + wx * 3.05, 3.4, wg.n + wn * 3.05, -wg.h - Math.PI / 2, 5.6);
+  // 東改札：東向きの面（東口の道側）
+  const eg = EAST_GATE, h2 = P2.atN(eg.n).h, ex = Math.cos(h2), en = -Math.sin(h2);
+  signBoard('石橋阪大前駅 東口', 'Ishibashi Handai-mae  East', eg.e + ex * 6.3, Y_PLAT + 2.6, eg.n + en * 6.3, -h2 + Math.PI / 2, 5.6);
+  // 改札前のガラス面（入口）
+  const glass = std('#3e4852', { roughness: 0.2, metalness: 0.4 });
+  const gw = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.4, 6), glass);
+  gw.position.set(wg.e + wx * 3.02, 1.2, -(wg.n + wn * 3.02)); gw.rotation.y = -wg.h; st.add(gw);
+  const gE = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.3, 5), glass);
+  gE.position.set(eg.e + ex * 6.25, Y_PLAT + 1.15, -(eg.n + en * 6.25)); gE.rotation.y = -h2; st.add(gE);
+}
+
+// ---- 電柱と電線（街の道路に沿って） ----
+{
+  const poles = [], wires = [];
+  TOWN_ROADS.forEach(([p, w, cls], ri) => {
+    if (cls === 4 || p.length < 8) return;
+    const step = cls === 3 ? 12 : 9.5, sides = cls === 2 ? [-1, 1] : [ri % 2 ? 1 : -1];
+    sides.forEach(side => {
+    let prev = null;
+    for (let s = 2 + (side > 0 ? step / 2 : 0); s < p.length; s += step) {
+      const q = p.at(s), lat = side * (w / 2 + 0.55);
+      const e = q.e + lat * Math.cos(q.h), n = q.n - lat * Math.sin(q.h);
+      if (Math.abs(e) > BS - 1 || Math.abs(n) > BS - 1 || blocked(e, n, 0.5) || inBuilding(e, n)) { prev = null; continue; }
+      if (TOWN_ROADS.some(([p2, w2], j) => { if (j === ri) return false; const k = p2.at(p2.nearestS(e, n)); return Math.hypot(k.e - e, k.n - n) < w2 / 2 + 0.3; })) { prev = null; continue; }   // 交差点の中には立てない
+      poles.push([e, n, q.h]);
+      if (prev) [-0.7, 0, 0.7].forEach(off => {
+        const ax = Math.cos(q.h) * off, an = -Math.sin(q.h) * off, bx = Math.cos(prev[2]) * off, bn = -Math.sin(prev[2]) * off;
+        const A = [prev[0] + bx, prev[1] + bn], Bp = [e + ax, n + an];
+        for (let k = 0; k < 6; k++) {
+          const t0 = k / 6, t1 = (k + 1) / 6, sag = t => 7.6 - Math.sin(Math.PI * t) * 0.45;
+          wires.push(A[0] + (Bp[0] - A[0]) * t0, sag(t0), -(A[1] + (Bp[1] - A[1]) * t0), A[0] + (Bp[0] - A[0]) * t1, sag(t1), -(A[1] + (Bp[1] - A[1]) * t1));
+        }
+      });
+      prev = [e, n, q.h];
+    }
+    });
+  });
+  const pole = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.11, 0.15, 8.2, 6), std('#b3aea5'), poles.length);
+  const arm = new THREE.InstancedMesh(new THREE.BoxGeometry(1.8, 0.12, 0.12), std('#6e6a64'), poles.length);
+  const o = new THREE.Object3D();
+  poles.forEach(([e, n, h], i) => {
+    o.position.set(e, 4.1, -n); o.rotation.set(0, -h, 0); o.updateMatrix(); pole.setMatrixAt(i, o.matrix);
+    o.position.set(e, 7.6, -n); o.updateMatrix(); arm.setMatrixAt(i, o.matrix);
+  });
+  pole.castShadow = true; st.add(pole, arm);
+  const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute(wires, 3));
+  st.add(new THREE.LineSegments(wg, new THREE.LineBasicMaterial({ color: '#3b3733', transparent: true, opacity: 0.65, clippingPlanes: CLIP_ALL })));
+}
+
+// ---- 木（公園・庭・街路） ----
+{
+  const trees = [];
+  const nearRoad = (e, n, pad) => TOWN_ROADS.some(([p, w]) => { const k = p.at(p.nearestS(e, n)); return Math.hypot(k.e - e, k.n - n) < w / 2 + pad; });
+  const ok = (e, n) => Math.abs(e) < BS - 2 && Math.abs(n) < BS - 2 && !blocked(e, n, 1.2) && !inBuilding(e, n, 0.6) && !nearRoad(e, n, 1.0);
+  TOWN.PARK.forEach(f => {
+    const poly = pairs(f); let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    poly.forEach(([e, n]) => { x0 = Math.min(x0, e); x1 = Math.max(x1, e); y0 = Math.min(y0, n); y1 = Math.max(y1, n); });
+    for (let e = x0; e < x1; e += 5) for (let n = y0; n < y1; n += 5) {
+      const je = e + (hashf(e * 3 + n) - 0.5) * 3, jn = n + (hashf(e + n * 7) - 0.5) * 3;
+      if (pip(je, jn, poly) && ok(je, jn) && hashf(je * 1.3 + jn) < 0.7) trees.push([je, jn, 1]);
+    }
+  });
+  // 庭木：家のまわりの空き地に少しずつ（東側の住宅街は多め）
+  for (let i = 0; i < 1400; i++) {
+    const e = (hashf(i * 1.7 + 0.3) - 0.5) * 2 * (BS - 3), n = (hashf(i * 2.9 + 5.1) - 0.5) * 2 * (BS - 3);
+    const east = e > M.eAtN(Math.max(-80, Math.min(120, n))) + 8;
+    if (hashf(i * 5.3) > (east ? 0.55 : 0.22)) continue;
+    if (!ok(e, n)) continue;
+    if (!BUILT.some(([p, [x0, x1, y0, y1]]) => e > x0 - 6 && e < x1 + 6 && n > y0 - 6 && n < y1 + 6)) continue;   // 家の近くだけ
+    trees.push([e, n, east ? 1.15 : 0.85]);
+  }
+  const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.14, 0.2, 1.8, 5), std('#6a5545'), trees.length);
+  const crownGeo = new THREE.IcosahedronGeometry(1, 0);
+  const crown = new THREE.InstancedMesh(crownGeo, std('#ffffff', { roughness: 1, flatShading: true }), trees.length);
+  const o = new THREE.Object3D(), c = new THREE.Color();
+  const greens = ['#6f8457', '#7d8f5e', '#5f7550', '#88956a', '#6a7d5c', '#7a8a55'];
+  trees.forEach(([e, n, k], i) => {
+    const s = (1.3 + hashf(i * 3.1) * 1.3) * k;
+    o.position.set(e, 0.9, -n); o.rotation.set(0, 0, 0); o.scale.set(1, 1, 1); o.updateMatrix(); trunk.setMatrixAt(i, o.matrix);
+    o.position.set(e, 1.6 + s * 0.85, -n); o.rotation.set(hashf(i) * 3, hashf(i + 1) * 3, 0); o.scale.set(s, s * 1.08, s); o.updateMatrix(); crown.setMatrixAt(i, o.matrix);
+    crown.setColorAt(i, c.set(greens[i % greens.length]).multiplyScalar(0.9 + hashf(i * 7) * 0.2));
+  });
+  trunk.castShadow = crown.castShadow = true; crown.receiveShadow = true;
+  st.add(trunk, crown);
+}
+
+{
+  const x = compassCanvas.getContext('2d');
+  x.strokeStyle = 'rgba(70,55,45,.6)'; x.fillStyle = 'rgba(70,55,45,.7)'; x.lineWidth = 9;
+  x.beginPath(); x.arc(128, 140, 80, 0, Math.PI * 2); x.stroke();
+  x.beginPath(); x.moveTo(128, 46); x.lineTo(150, 150); x.lineTo(128, 132); x.lineTo(106, 150); x.closePath(); x.fill();
+  x.font = 'italic 500 54px "Cormorant Garamond", serif'; x.textAlign = 'center'; x.fillText('N', 128, 40);
+  compassTex.needsUpdate = true;
+}
+const labelGroup = new THREE.Group(); st.add(labelGroup);
+function makeLabel(text, kind = 'place') {
+  const dpr = 2, fs = kind === 'num' ? 30 : kind === 'dir' ? 28 : 26;
+  const font = kind === 'dir'
+    ? `italic 500 ${fs * dpr}px "Cormorant Garamond", "Shippori Mincho", "Hiragino Mincho ProN", serif`
+    : `600 ${fs * dpr}px "Shippori Mincho", "Hiragino Mincho ProN", serif`;
+  const cv = document.createElement('canvas'), x = cv.getContext('2d');
+  x.font = font;
+  const padX = 14 * dpr, w = Math.ceil(x.measureText(text).width + padX * 2), h = Math.ceil(fs * dpr * 1.55);
+  cv.width = w; cv.height = h + 10 * dpr;
+  x.font = font; x.textAlign = 'center'; x.textBaseline = 'middle';
+  if (kind !== 'dir') {
+    x.fillStyle = kind === 'num' ? '#6b1d23' : 'rgba(253,250,244,.92)';
+    x.strokeStyle = kind === 'num' ? '#6b1d23' : 'rgba(90,70,50,.45)'; x.lineWidth = 2 * dpr;
+    const r = h / 2; x.beginPath(); x.roundRect(dpr, dpr, w - 2 * dpr, h - 2 * dpr, r); x.fill(); x.stroke();
+    x.beginPath(); x.moveTo(w / 2 - 6 * dpr, h - dpr); x.lineTo(w / 2, h + 8 * dpr); x.lineTo(w / 2 + 6 * dpr, h - dpr); x.fill();
+  }
+  x.fillStyle = kind === 'num' ? '#fff5ec' : kind === 'dir' ? '#5a4d42' : '#3a332d';
+  x.fillText(text, w / 2, h / 2 + dpr);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, depthWrite: false, sizeAttenuation: false, fog: false }));
+  const k = (isTouch ? 0.00013 : 0.0001) / S; sp.scale.set(cv.width * k, cv.height * k, 1); sp.center.set(0.5, 0); sp.renderOrder = 999;
+  return sp;
+}
+const at = (p, n) => p.atN(n);
+const LABELS = [
+  ['1号線', 'num', at(P1, 40), 5], ['2号線', 'num', at(P2, 8), 5],
+  ['3号線', 'num', at(P3, -14), 5], ['4号線', 'num', at(P4, 4), 5], ['5号線', 'num', P5.at(32), 5],
+  ['西側ホーム（単式）', 'place', at(P1.offset(-4.1), 64), 3],
+  ['中央ホーム（三角形の島式）', 'place', { e: 0, n: -30 }, 3],
+  ['東側ホーム（単式）', 'place', at(P4.offset(4.1), -36), 3],
+  ['西改札', 'place', WEST_GATE, 6], ['東改札', 'place', EAST_GATE, 7],
+  ['地下道（1・2号線の下）', 'place', { e: (PAS.e0 + PAS.e1) / 2, n: CUT_N }, -3],
+  ['複線で分岐', 'place', { e: 4, n: -70 }, 2],
+  ['↓ 至 大阪梅田', 'dir', { e: 10, n: -118 }, 3], ['↖ 至 池田・宝塚', 'dir', { e: -84, n: 118 }, 3], ['↗ 至 箕面', 'dir', P5.atN(112), 3],
+  ['宝塚本線', 'dir', { e: -50, n: 98 }, 3], ['箕面線', 'dir', P5.atN(90), 3], ['東口の道', 'dir', { e: 26, n: 50 }, 2],
+  ['待兼山・大阪大学 方面 →', 'dir', { e: 112, n: -40 }, 3], ['商店街（アーケード）', 'dir', { e: -40, n: 30 }, 9],
+  ...XING_LABELS.map(([t, q]) => [t, 'place', q, 3.5]),
+  ...VIADUCT_LABELS.map(([t, q, y]) => [t, 'dir', q, terrainY(q.e, q.n) + y]),
+];
+LABELS.forEach(([t, k, p, y]) => { const s = makeLabel(t, k); s.position.set(p.e, y, -p.n); s.userData.isPassage = t.startsWith('地下道'); labelGroup.add(s); });
+
+// ============================================================
+//  段階3：電車の運転・踏切・人と車・時間帯の光・化石
+// ============================================================
+const UPDATERS = [];
+const obj3 = new THREE.Object3D();
+const AUDIO_SRC = { cars: [], bikes: [] };        // 環境音で使う車と自転車
+
+// ---------- 電車（阪急らしいマルーンの車体、アイボリーの屋根） ----------
+const TR = { vmax: 12.5, acc: 0.85, dec: 0.95 };
+const trainMat = std(null, { vertexColors: true, roughness: 0.34, metalness: 0.2, clipShadows: true });
+const glassMat = std('#232d37', { roughness: 0.18, metalness: 0.5, emissive: '#ffefcb', emissiveIntensity: 0, clipShadows: true });
+const headMat = std('#fffbea', { emissive: '#fff4d2', emissiveIntensity: 1.4 });
+const tailMat = std('#4a0d0a', { emissive: '#ff2a18', emissiveIntensity: 1.3 });
+NIGHT.push([glassMat, 0.03, 1.0]);
+function tinted(geo, color, x = 0, y = 0, z = 0) {
+  geo = geo.index ? geo.toNonIndexed() : geo; geo.translate(x, y, z);
+  const c = new THREE.Color(color), n = geo.attributes.position.count, col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) col.set([c.r, c.g, c.b], i * 3);
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  if (!geo.attributes.uv) geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(n * 2), 2));
+  return geo;
+}
+function carBodyGeo(panto) {
+  const L = CAR - 0.3, parts = [
+    tinted(new RoundedBoxGeometry(L, 3.1, 2.8, 2, 0.34), '#5b1a20', 0, 2.62, 0),           // 車体
+    tinted(new RoundedBoxGeometry(L - 0.2, 0.42, 2.56, 2, 0.18), '#e8dfcf', 0, 4.12, 0),    // アイボリーの屋根
+    tinted(new RoundedBoxGeometry(4.2, 0.46, 1.6, 1, 0.12), '#cdc6b9', -1.5, 4.5, 0),       // 冷房装置
+    tinted(new THREE.BoxGeometry(L - 2.6, 0.62, 2.3), '#2e2b29', 0, 0.98, 0),               // 床下機器
+    tinted(new THREE.BoxGeometry(2.6, 0.55, 2.1), '#232120', L / 2 - 2.5, 0.62, 0),         // 台車
+    tinted(new THREE.BoxGeometry(2.6, 0.55, 2.1), '#232120', -L / 2 + 2.5, 0.62, 0),
+  ];
+  [-4.6, 0, 4.6].forEach(x => parts.push(tinted(new THREE.BoxGeometry(1.3, 2.15, 2.84), '#4b141a', x, 2.45, 0)));   // 扉
+  if (panto) {                                                                             // パンタグラフ
+    [0.42, -0.42].forEach(a => { const g = new THREE.BoxGeometry(2.0, 0.07, 0.07); g.rotateZ(a); parts.push(tinted(g, '#3a3a3c', 3.6 + (a > 0 ? -0.4 : 0.4), 4.75, 0)); });
+    parts.push(tinted(new THREE.BoxGeometry(0.12, 0.07, 1.7), '#3a3a3c', 3.6, 5.12, 0));
+  }
+  return mergeGeometries(parts);
+}
+const GEO = {
+  car: carBodyGeo(false), carP: carBodyGeo(true),
+  glass: new THREE.BoxGeometry(CAR - 2.8, 0.95, 2.86),
+  cab: new THREE.BoxGeometry(0.14, 1.15, 2.3),
+  light: new THREE.BoxGeometry(0.1, 0.22, 0.36),
+};
+GEO.glass.translate(0, 3.05, 0);
+function makeTrain(nCars) {
+  const group = new THREE.Group(), cars = [], front = [], rear = [];
+  for (let k = 0; k < nCars; k++) {
+    const car = new THREE.Group();
+    const body = new THREE.Mesh(k % 4 === 1 ? GEO.carP : GEO.car, trainMat); body.castShadow = true; car.add(body);
+    car.add(new THREE.Mesh(GEO.glass, glassMat));
+    [[0, 1], [nCars - 1, -1]].forEach(([kk, sd]) => {
+      if (k !== kk) return;
+      const cab = new THREE.Mesh(GEO.cab, glassMat); cab.position.set(sd * (CAR / 2 - 0.2), 3.0, 0); car.add(cab);
+      [-0.85, 0.85].forEach(z => { const l = new THREE.Mesh(GEO.light, sd > 0 ? headMat : tailMat); l.position.set(sd * (CAR / 2 - 0.12), 1.85, z); car.add(l); (sd > 0 ? front : rear).push(l); });
+    });
+    group.add(car); cars.push(car);
+  }
+  st.add(group);
+  return { group, cars, front, rear, len: nCars * CAR + (nCars - 1) * GAP };
+}
+function placeCars(t) {
+  t.cars.forEach((car, k) => {
+    const sk = t.s - k * (CAR + GAP), a = t.route.at(sk - 2.3), b = t.route.at(sk - CAR + 2.3);
+    const e = (a.e + b.e) / 2, n = (a.n + b.n) / 2;
+    car.visible = Math.abs(e) < BS + 14 && Math.abs(n) < BS + 14;
+    car.position.set(e, 0, -n); car.rotation.y = Math.atan2(a.n - b.n, a.e - b.e);
+  });
+}
+const FREQ = { mid: { T: 62, M: 95 }, rush: { T: 34, M: 62 } };
+let freq = 'mid';
+const LINES = {
+  TD: { route: ROUTE.TD, cars: 8, stop: ROUTE.TD.sAtN(88), dwell: 20, timer: 2 },      // 宝塚本線 下り → 1号線
+  TU: { route: ROUTE.TU, cars: 8, stop: ROUTE.TU.sAtN(-41), dwell: 20, timer: 14 },    // 宝塚本線 上り → 2号線
+};
+const trains = [];
+function spawn(lineKey) {
+  const L = LINES[lineKey], tr = makeTrain(L.cars);
+  const t = { ...tr, line: lineKey, route: L.route, s: 30, v: TR.vmax * 0.9, state: 'run', stopS: L.stop, dwell: 0 };
+  trains.push(t); placeCars(t); return t;
+}
+// 箕面線：5号線で折り返す1編成が行き来する
+const shuttle = { ...makeTrain(4), line: 'M', route: ROUTE.MIN, s: 30, v: TR.vmax * 0.9, state: 'run', stopS: ROUTE.MIN.length - 1.2, dwell: 0, leg: 'in', wait: 0 };
+trains.push(shuttle); placeCars(shuttle);
+function setLights(t, forward) {
+  t.front.forEach(m => m.material = forward ? headMat : tailMat);
+  t.rear.forEach(m => m.material = forward ? tailMat : headMat);
+}
+function stepTrain(t, dt) {
+  if (t.state === 'away') return;
+  if (t.state === 'dwell') {
+    t.v = 0; t.dwell -= dt;
+    if (t.dwell <= 0) {
+      if (t.line === 'M') {                         // 折り返し：先頭が箕面寄りになる
+        t.route = ROUTE.MOUT; t.s = t.len + 1.2; t.leg = 'out'; t.stopS = null;
+      } else t.stopS = null;
+      t.state = 'run';
+    }
+    return;
+  }
+  // 先行列車の後ろで止まる
+  let limit = t.stopS ?? Infinity;
+  trains.forEach(o => { if (o !== t && o.route === t.route && o.state !== 'away' && o.s > t.s) limit = Math.min(limit, o.s - o.len - 14); });
+  const dist = limit - t.s;
+  const vt = Math.min(TR.vmax, Math.sqrt(Math.max(0, 2 * TR.dec * dist)));
+  t.v = t.v < vt ? Math.min(vt, t.v + TR.acc * dt) : Math.max(vt, t.v - TR.dec * 1.6 * dt);
+  t.s += t.v * dt;
+  if (t.stopS != null && t.stopS - t.s < 0.06 && t.v < 0.4) {
+    t.s = t.stopS; t.state = 'dwell'; t.dwell = t.line === 'M' ? 26 : LINES[t.line].dwell;
+  }
+  if (t.s - t.len > t.route.length - 2) {
+    if (t.line === 'M') { t.state = 'away'; t.wait = FREQ[freq].M * 0.45; t.group.visible = false; }
+    else { st.remove(t.group); t.dead = true; }
+  }
+}
+UPDATERS.push((dt) => {
+  // 新しい列車を出す
+  Object.entries(LINES).forEach(([k, L]) => {
+    L.timer -= dt;
+    const last = trains.filter(t => t.line === k && !t.dead).sort((a, b) => a.s - b.s)[0];
+    if (L.timer <= 0 && (!last || last.s - last.len > 70)) { spawn(k); L.timer = FREQ[freq].T * (0.9 + Math.random() * 0.2); }
+  });
+  if (shuttle.state === 'away') {
+    shuttle.wait -= dt;
+    if (shuttle.wait <= 0) { shuttle.route = ROUTE.MIN; shuttle.s = 30; shuttle.v = TR.vmax * 0.9; shuttle.state = 'run'; shuttle.leg = 'in'; shuttle.stopS = ROUTE.MIN.length - 1.2; shuttle.group.visible = true; }
+  }
+  trains.forEach(t => { stepTrain(t, dt); if (!t.dead && t.state !== 'away') placeCars(t); });
+  for (let i = trains.length - 1; i >= 0; i--) if (trains[i].dead) trains.splice(i, 1);
+});
+function departNow() {
+  let any = false;
+  trains.forEach(t => { if (t.state === 'dwell') { t.dwell = 0; any = true; } });
+  if (shuttle.state === 'away') { shuttle.wait = 0; any = true; }
+  Object.keys(LINES).forEach(k => { if (!trains.some(t => t.line === k && !t.dead && t.state !== 'away' && t.s < LINES[k].stop + 30)) { LINES[k].timer = 0; any = true; } });
+  return any;
+}
+
+// ---------- 踏切：列車が近づくと遮断かんが下り、警報灯が交互に点滅 ----------
+CROSSINGS.forEach(c => {
+  c.hits = [];
+  [ROUTE.TD, ROUTE.TU, ROUTE.MIN, ROUTE.MOUT].forEach(r => {
+    const s = r.nearestS(c.e, c.n), q = r.at(s);
+    if (Math.hypot(q.e - c.e, q.n - c.n) < 10) c.hits.push([r, s]);     // 踏切は3線ぶんの幅があるので少し広めに
+  });
+});
+UPDATERS.push((dt, time) => {
+  CROSSINGS.forEach(c => {
+    c.active = trains.some(t => t.state !== 'away' && !t.dead && c.hits.some(([r, sx]) => {
+      if (r !== t.route) return false;
+      const occupied = t.s + 3 > sx && t.s - t.len - 3 < sx;
+      const coming = t.state === 'run' && t.s < sx && sx - t.s < 85;
+      return occupied || coming;
+    }));
+    const target = c.active ? 0.02 : 1.45;
+    c.booms.forEach(p => { const d = target - p.rotation.z; p.rotation.z += Math.sign(d) * Math.min(Math.abs(d), dt * 1.0); });
+    const ph = Math.floor(time * 2.2) % 2;
+    c.lamps[0].emissiveIntensity = c.active ? (ph ? 2.6 : 0.08) : 0.12;
+    c.lamps[1].emissiveIntensity = c.active ? (ph ? 0.08 : 2.6) : 0.12;
+  });
+});
+
+// 動いているものが、鳴っている踏切の手前にいるか（中にいる時はそのまま渡り切る）
+function waitAtCrossing(e0, n0, e1, n1) {
+  return CROSSINGS.some(c => {
+    if (!c.active) return false;
+    const d0 = Math.hypot(e0 - c.e, n0 - c.n), d1 = Math.hypot(e1 - c.e, n1 - c.n);
+    return d0 > 7.5 && d1 < d0 && d0 < 12;
+  });
+}
+
+// ---------- 人：商店街・街の道・東口・ホーム・地下道 ----------
+{
+  const pg = mergeGeometries([
+    tinted(new THREE.CylinderGeometry(0.3, 0.36, 1.25, 6), '#ffffff', 0, 0.63, 0),
+    tinted(new THREE.SphereGeometry(0.26, 8, 6), '#f0d9c4', 0, 1.5, 0),
+  ]);
+  const walkers = [];
+  const cloth = ['#3d4a5c', '#7b2f2f', '#d8d1c0', '#4f5b46', '#2c2c2e', '#a88a5c', '#6c5a7a', '#b6533c', '#e6e2d8', '#41617a'];
+  const add = (path, lat, y, speed, still = false) => walkers.push({ path, s: Math.random() * path.length, dir: Math.random() < 0.5 ? 1 : -1, lat, y, speed, still, t0: Math.random() * 10 });
+  Object.values(TOWN.ARC).flat().forEach(f => { const p = Path.poly(pairs(f), 1); for (let i = 0; i < p.length / 6; i++) add(p, (Math.random() - 0.5) * 2.6, 0.08, 0.75 + Math.random() * 0.5); });
+  const eastExit = MODEL_ROADS[4][0];
+  for (let i = 0; i < 16; i++) add(eastExit, (Math.random() < 0.5 ? -1 : 1) * (1.6 + Math.random() * 0.6), 0.1, 0.9 + Math.random() * 0.4);
+  TOWN_ROADS.forEach(([p, w, cls], i) => { if (cls === 4 || p.length < 20 || i % 2) return; for (let j = 0; j < p.length / 28; j++) add(p, (Math.random() < 0.5 ? -1 : 1) * (w / 2 - 0.45), 0.08, 0.7 + Math.random() * 0.5); });
+  // ホームで電車を待つ人
+  [[P1.offset(-4.1), P1.offset(-4.1).sAtN(-30), P1.offset(-4.1).sAtN(80), 3], [P2.offset(4.2), P2.offset(4.2).sAtN(-30), P2.offset(4.2).sAtN(70), 3], [P5.offset(3.1), 4, 50, 1.4]].forEach(([p, s0, s1, spread]) => {
+    for (let i = 0; i < 12; i++) walkers.push({ path: p, s: s0 + Math.random() * (s1 - s0), dir: 1, lat: (Math.random() - 0.5) * spread, y: Y_PLAT, speed: 0, still: true, t0: Math.random() * 10 });
+  });
+  // 地下道を行き来する人（断面アップで見える）
+  const pas = Path.poly([[PAS.e0 + 1, CUT_N], [PAS.e1 - 1, CUT_N]], 1);
+  for (let i = 0; i < 8; i++) add(pas, (Math.random() - 0.5) * 3, PAS.y0, 0.8 + Math.random() * 0.4);
+  const mesh = new THREE.InstancedMesh(pg, std('#ffffff', { roughness: 0.8, vertexColors: true }), walkers.length);
+  const c = new THREE.Color();
+  walkers.forEach((w, i) => mesh.setColorAt(i, c.set(cloth[i % cloth.length])));
+  mesh.castShadow = true; st.add(mesh);
+  UPDATERS.push((dt, time) => {
+    walkers.forEach((w, i) => {
+      if (!w.still) {
+        const q0 = w.path.at(w.s), q1 = w.path.at(w.s + w.dir * 1.5);
+        if (!waitAtCrossing(q0.e, q0.n, q1.e, q1.n)) w.s += w.dir * w.speed * dt;
+        if (w.s < 0 || w.s > w.path.length) { w.dir *= -1; w.s = Math.max(0, Math.min(w.path.length, w.s)); }
+      }
+      const q = w.path.at(w.s), e = q.e + w.lat * Math.cos(q.h), n = q.n - w.lat * Math.sin(q.h);
+      const bob = w.still ? 0 : Math.abs(Math.sin((time + w.t0) * 6)) * 0.06;
+      obj3.position.set(e, w.y + bob, -n); obj3.rotation.set(0, 0, 0); obj3.scale.setScalar(0.8); obj3.updateMatrix(); mesh.setMatrixAt(i, obj3.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+  });
+}
+
+// ---------- 車・タクシー・自転車（左側通行） ----------
+{
+  const roads = TOWN_ROADS.filter(([p, w, cls]) => (cls === 1 || cls === 2) && p.length > 30).map(([p, w]) => [p, w]);
+  [MODEL_ROADS[2], MODEL_ROADS[3], MODEL_ROADS[4]].forEach(([p]) => roads.push([p, 4.5]));
+  const carGeo = mergeGeometries([
+    tinted(new RoundedBoxGeometry(3.5, 0.9, 1.7, 2, 0.28), '#ffffff', 0, 0.75, 0),
+    tinted(new RoundedBoxGeometry(2.0, 0.66, 1.5, 2, 0.22), '#5a5f66', -0.25, 1.45, 0),
+  ]);
+  const bikeGeo = mergeGeometries([
+    tinted(new THREE.BoxGeometry(1.5, 0.75, 0.1), '#3b3b3d', 0, 0.55, 0),
+    tinted(new THREE.CylinderGeometry(0.22, 0.26, 0.95, 6), '#ffffff', 0, 1.35, 0),
+    tinted(new THREE.SphereGeometry(0.22, 8, 6), '#f0d9c4', 0, 1.95, 0),
+  ]);
+  const cols = ['#1f1f22', '#e2b03a', '#2f5a45', '#eceae4', '#9da2a8', '#2f3c56', '#e7e3da', '#7a2b2b', '#1f1f22', '#e2b03a'];   // 黒・黄・緑はタクシー
+  const mk = (n, geo, speed, laneK) => {
+    const list = [];
+    for (let i = 0; i < n; i++) { const [p, w] = roads[(i * 7 + 3) % roads.length]; list.push({ p, w, s: Math.random() * p.length, dir: i % 2 ? 1 : -1, v: speed * (0.8 + Math.random() * 0.4), laneK }); }
+    (geo === carGeo ? AUDIO_SRC.cars : AUDIO_SRC.bikes).push(...list);
+    const m = new THREE.InstancedMesh(geo, std('#ffffff', { roughness: 0.45, metalness: 0.15, vertexColors: true }), n);
+    const c = new THREE.Color(); list.forEach((x, i) => m.setColorAt(i, c.set(cols[(i * 3) % cols.length])));
+    m.castShadow = true; st.add(m);
+    UPDATERS.push((dt) => {
+      list.forEach((x, i) => {
+        const a0 = x.p.at(x.s), a1 = x.p.at(x.s + x.dir * 3);
+        if (!waitAtCrossing(a0.e, a0.n, a1.e, a1.n)) x.s += x.dir * x.v * dt;      // 踏切が鳴っていたら手前で待つ
+        if (x.s < 1 || x.s > x.p.length - 1) { x.dir *= -1; x.s = Math.max(1, Math.min(x.p.length - 1, x.s)); }
+        const q = x.p.at(x.s), lat = -x.dir * x.laneK(x.w), e = q.e + lat * Math.cos(q.h), n = q.n - lat * Math.sin(q.h);
+        obj3.position.set(e, 0.05, -n); obj3.rotation.set(0, Math.PI / 2 - q.h + (x.dir < 0 ? Math.PI : 0), 0); obj3.scale.setScalar(1);
+        obj3.updateMatrix(); m.setMatrixAt(i, obj3.matrix);
+      });
+      m.instanceMatrix.needsUpdate = true;
+    });
+  };
+  mk(24, carGeo, 5.5, w => w * 0.22);
+  mk(30, bikeGeo, 2.1, w => w / 2 - 0.55);
+}
+
+
+// ---------- 高架の道路を走る車（交差点に信号。夕方は台数が増えて渋滞する） ----------
+{
+  const CARL = 3.6, VMAX = 8;
+  // 信号：176号線側 → 府道側 の順に青。黄3秒・全赤1秒
+  const CYCLE = 30, phaseOf = (name, t) => {
+    const x = t % CYCLE, a = name === '176' ? x : (x + CYCLE / 2) % CYCLE;
+    return a < 11 ? 'G' : a < 14 ? 'Y' : 'R';
+  };
+  const lanes = [];
+  VIADUCTS.forEach(V => [1, -1].forEach(dir => lanes.push({ V, dir, cars: [], L: V.path.length, stopP: dir > 0 ? V.jS - 7 : V.path.length - V.jS - 7 })));
+  const POOL = 18, all = [];
+  const carGeo = mergeGeometries([
+    tinted(new RoundedBoxGeometry(3.5, 0.9, 1.7, 2, 0.28), '#ffffff', 0, 0.75, 0),
+    tinted(new RoundedBoxGeometry(2.0, 0.66, 1.5, 2, 0.22), '#5a5f66', -0.25, 1.45, 0),
+  ]);
+  // テールランプ・ヘッドライト（夕方から点く）
+  const lightGeo = mergeGeometries([
+    ...[-0.55, 0.55].map(z => tinted(new THREE.BoxGeometry(0.08, 0.2, 0.36), '#fff6dc', 1.76, 0.85, z)),
+    ...[-0.6, 0.6].map(z => tinted(new THREE.BoxGeometry(0.08, 0.2, 0.34), '#ff2a1c', -1.76, 0.85, z)),
+  ]);
+  const cols = ['#eceae4', '#1f1f22', '#9da2a8', '#2f3c56', '#7a2b2b', '#e2b03a', '#d8d2c2', '#3d4a3f', '#bfc3c7', '#2f5a45'];
+  const N = lanes.length * POOL;
+  const mesh = new THREE.InstancedMesh(carGeo, std('#ffffff', { roughness: 0.45, metalness: 0.15, vertexColors: true }), N);
+  const lights = new THREE.InstancedMesh(lightGeo, new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, clippingPlanes: CLIP_ALL, transparent: true, opacity: 0 }), N);
+  mesh.castShadow = true; st.add(mesh, lights);
+  const c = new THREE.Color();
+  lanes.forEach((ln, li) => { for (let i = 0; i < POOL; i++) { const car = { ln, s: 0, v: 0, on: false, idx: all.length, stopT: 0, p: ln.V.path }; all.push(car); mesh.setColorAt(car.idx, c.set(cols[(car.idx * 7) % cols.length])); } });
+  AUDIO_SRC.cars.push(...all);
+  // 信号機（交差点の角に2基ずつ）
+  const sigMats = { 176: ['G', 'Y', 'R'].map(() => std('#222', { emissive: '#000', emissiveIntensity: 1 })), RS: ['G', 'Y', 'R'].map(() => std('#222', { emissive: '#000', emissiveIntensity: 1 })) };
+  const LCOL = { G: '#39d98a', Y: '#ffc23a', R: '#ff3b2e' };
+  {
+    const J = JUNCTION, pole = new THREE.CylinderGeometry(0.12, 0.14, 5.2, 8), head = new RoundedBoxGeometry(2.0, 0.6, 0.5, 1, 0.12), lamp = new THREE.CircleGeometry(0.2, 12);
+    [['176', 8, -8, Math.PI / 2], ['176', -8, 8, -Math.PI / 2], ['RS', -8, -8, 0], ['RS', 8, 8, Math.PI]].forEach(([nm, de, dn, ry]) => {
+      const g = new THREE.Group(); g.position.set(J.e + de, 0, -(J.n + dn)); g.rotation.y = ry; st.add(g);
+      const pm = new THREE.Mesh(pole, std('#8b8d8f')); pm.position.y = 2.6; g.add(pm);
+      const hm = new THREE.Mesh(head, std('#3a3c3e')); hm.position.set(0, 5.0, 0.3); g.add(hm);
+      ['G', 'Y', 'R'].forEach((k, i) => { const l = new THREE.Mesh(lamp, sigMats[nm][i]); l.position.set(-0.65 + i * 0.65, 5.0, 0.56); g.add(l); });
+    });
+  }
+  const pos = (car) => {
+    const { V, dir } = car.ln, q = V.path.at(car.s), lat = -dir * V.w * 0.24;
+    return { e: q.e + lat * Math.cos(q.h), n: q.n - lat * Math.sin(q.h), y: terrainY(q.e, q.n) + V.h(car.s) + 0.13, h: q.h };
+  };
+  const prog = (car) => car.ln.dir > 0 ? car.s : car.ln.L - car.s;
+  let clock = 0, honkT = 4;
+  UPDATERS.push((dt) => {
+    clock += dt;
+    const evening = smooth(1.62, 1.85, TOD) * (1 - smooth(2.45, 2.75, TOD));      // 16時ごろ〜19時ごろ
+    const target = Math.round(4 + evening * (POOL - 5) - smooth(2.6, 2.9, TOD) * 2);
+    const vmax = VMAX * (1 - evening * 0.3);
+    ['176', 'RS'].forEach(nm => { const ph = phaseOf(nm, clock); ['G', 'Y', 'R'].forEach((k, i) => { const m = sigMats[nm][i]; m.emissive.set(ph === k ? LCOL[k] : '#000'); m.color.set(ph === k ? LCOL[k] : '#2a2a2a'); m.emissiveIntensity = ph === k ? 1.6 : 0; }); });
+    lanes.forEach(ln => {
+      const act = ln.cars;
+      // 入ってくる車：入口があいていて台数が目標より少なければ
+      const lastP = act.length ? Math.min(...act.map(prog)) : Infinity;
+      if (act.length < target && lastP > CARL + 6 + Math.random() * 6) {
+        const car = all.find(x => x.ln === ln && !x.on);
+        if (car) { car.on = true; car.s = ln.dir > 0 ? 1 : ln.L - 1; car.v = vmax * 0.8; car.stopT = 0; act.push(car); }
+      }
+      act.sort((a, b) => prog(b) - prog(a));                      // 先頭から順に
+      const ph = phaseOf(ln.V.name, clock);
+      act.forEach((car, i) => {
+        const p = prog(car);
+        let gap = i ? prog(act[i - 1]) - p - CARL : Infinity;
+        const dStop = ln.stopP - p;                                // 停止線まで
+        if (dStop > 0 && ph !== 'G' && !(ph === 'Y' && dStop < car.v * car.v / 6)) gap = Math.min(gap, dStop);
+        const want = Math.max(0, Math.min(vmax, (gap - 1.6) / 1.1));
+        car.v += Math.max(-6 * dt, Math.min(2.2 * dt, want - car.v));
+        car.s += ln.dir * car.v * dt;
+        car.stopT = car.v < 0.3 ? car.stopT + dt : 0;
+        if (prog(car) > ln.L - 1) { car.on = false; }
+      });
+      ln.cars = act.filter(x => x.on);
+    });
+    // クラクション（渋滞で長く止まっている時、たまに）
+    honkT -= dt;
+    if (honkT < 0) {
+      honkT = 6 + Math.random() * 10;
+      const stuck = all.filter(x => x.on && x.stopT > 5);
+      if (evening > 0.5 && stuck.length && window.__snd) { const q = pos(stuck[Math.floor(Math.random() * stuck.length)]); window.__snd.honk(q.e, q.n); }
+    }
+    const lk = smooth(1.75, 2.25, TOD);
+    lights.material.opacity = lk; lights.visible = lk > 0.02;
+    all.forEach(car => {
+      if (!car.on) { obj3.scale.setScalar(0); obj3.updateMatrix(); mesh.setMatrixAt(car.idx, obj3.matrix); lights.setMatrixAt(car.idx, obj3.matrix); return; }
+      const q = pos(car);
+      obj3.position.set(q.e, q.y, -q.n); obj3.rotation.set(0, Math.PI / 2 - q.h + (car.ln.dir < 0 ? Math.PI : 0), 0); obj3.scale.setScalar(1);
+      obj3.updateMatrix(); mesh.setMatrixAt(car.idx, obj3.matrix); lights.setMatrixAt(car.idx, obj3.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true; lights.instanceMatrix.needsUpdate = true;
+  });
+}
+
+// ---------- 夜のホーム・アーケードの照明（屋根の下の光る帯） ----------
+{
+  const stripMat = std('#d7d3ca', { emissive: '#fff2d6', emissiveIntensity: 0.04, roughness: 0.5 });
+  NIGHT.push([stripMat, 0.04, 2.2]);
+  const geos = [];
+  const strip = (p, s0, s1, y) => { if (s1 - s0 > 2) geos.push(sweep(p.slice(s0, s1), [[-0.24, y], [-0.24, y + 0.06], [0.24, y + 0.06], [0.24, y]], { step: 1 })); };
+  const sN = (p, n) => p.sAtN(n), yC = Y_PLAT + 3.4 - 0.26, yBig = Y_PLAT + 4.2 - 0.08;
+  { const p = P1.offset(-4.1); strip(p, sN(p, -45), sN(p, 86), yC); }
+  { const p = P4.offset(4.1); strip(p, sN(p, -50), sN(p, 30), yC); }
+  { const p = P2.offset(4.4); strip(p, sN(p, ISL_N0 + 8), sN(p, PL2_N - 2), yBig); }
+  strip(P5.offset(-3.4), 3, L5P - 2, yBig); strip(P5.offset(3.4), 3, ISL_STIP - 2, yBig);
+  { const p = P3.offset(-4.3); strip(p, sN(p, ISL_N0 + 8), sN(p, 24), yBig); }
+  // アーケードの下
+  Object.values(TOWN.ARC).flat().forEach(f => {
+    const p = Path.poly(pairs(f), 1); let s0 = null;
+    for (let s = 0; s <= p.length; s += 1) {
+      const q = p.at(s), inside = Math.abs(q.e) < BS - 1 && Math.abs(q.n) < BS - 1 && ROOFS.some(r => pip(q.e, q.n, r));
+      if (inside && s0 === null) s0 = s;
+      if ((!inside || s >= p.length) && s0 !== null) { strip(p, s0, s, ARC_Y - 0.45); s0 = null; }
+    }
+  });
+  if (geos.length) st.add(new THREE.Mesh(mergeGeometries(geos), stripMat));
+}
+
+// ---------- ワニの化石（東側の断面、深い地層にこっそり） ----------
+{
+  const bone = std('#e9dfc7', { roughness: 0.75, emissive: '#2a2216', emissiveIntensity: 0.1 }, CLIP_SEC);
+  const g = new THREE.Group(); g.position.set(B + 0.05, -27.6, -6); g.rotation.y = Math.PI / 2; scene.add(g);   // ローカル x = 北向き、y = 上
+  const put = (geo, x, y, rz = 0, sx = 1, sy = 1) => { const m = new THREE.Mesh(geo, bone); m.position.set(x, y, 0.08); m.rotation.z = rz; m.scale.set(sx, sy, 1); g.add(m); return m; };
+  const flat = (w, h, r = 0.12) => new RoundedBoxGeometry(w, h, 0.32, 2, r);
+  // 頭骨（細長い吻）
+  const skull = new THREE.Shape(); skull.moveTo(0, -0.55); skull.lineTo(3.4, -0.18); skull.quadraticCurveTo(3.8, 0, 3.4, 0.18); skull.lineTo(0, 0.62); skull.quadraticCurveTo(-0.45, 0, 0, -0.55);
+  const sg = new THREE.ExtrudeGeometry(skull, { depth: 0.3, bevelEnabled: true, bevelSize: 0.06, bevelThickness: 0.05, bevelSegments: 2 });
+  const sk = new THREE.Mesh(sg, bone); sk.position.set(5.2, 0.15, 0); sk.rotation.z = 0.05; g.add(sk);
+  const eye = new THREE.Mesh(new THREE.CircleGeometry(0.16, 12), std('#5a4a38', {}, CLIP_SEC)); eye.position.set(5.75, 0.36, 0.42); g.add(eye);
+  // 背骨と肋骨
+  for (let i = 0; i < 11; i++) {
+    const x = 4.7 - i * 0.62, y = 0.1 + Math.sin(i * 0.45) * 0.18;
+    put(flat(0.46, 0.5), x, y, Math.sin(i * 0.45) * 0.2);
+    if (i > 1 && i < 9) { put(flat(0.12, 1.1, 0.05), x, y - 0.75, 0.25); put(flat(0.12, 0.9, 0.05), x - 0.1, y + 0.62, -0.3); }
+  }
+  // 尾
+  for (let i = 0; i < 16; i++) { const t = i / 15, x = -2.3 - i * 0.5, y = 0.2 + Math.sin(i * 0.38 + 0.6) * 0.55; put(flat(0.42 - t * 0.24, 0.4 - t * 0.22, 0.08), x, y, Math.cos(i * 0.38) * 0.4); }
+  // 四肢
+  [[3.8, 1], [3.6, -1], [-0.9, 1], [-1.1, -1]].forEach(([x, sd]) => {
+    put(flat(0.22, 1.0, 0.08), x, 0.1 + sd * 0.8, sd * 0.6);
+    put(flat(0.18, 0.8, 0.07), x + 0.45, 0.1 + sd * 1.5, sd * -0.3);
+    for (let f = -1; f <= 1; f++) put(flat(0.08, 0.36, 0.03), x + 0.6 + f * 0.16, 0.1 + sd * 1.95, f * 0.4);
+  });
+}
+
+// ---------- 時間帯（朝・昼・夕方・夜） ----------
+const KEYS = [
+  { name: '朝', min: 6 * 60 + 30, el: 22, az: 110, sun: '#ffd8ac', si: 2.1, sky: '#dfe8f0', gnd: '#8a7a66', hi: 1.05, top: '#c8d8e6', bot: '#f3e4d3', fog: '#e1ddd5', exp: 1.0 },
+  { name: '昼', min: 12 * 60, el: 62, az: 170, sun: '#fff3e2', si: 2.4, sky: '#fff6e8', gnd: '#7d6d5b', hi: 1.15, top: '#f1ece3', bot: '#d8cfc2', fog: '#ddd5c8', exp: 1.05 },
+  { name: '夕方', min: 17 * 60 + 30, el: 16, az: 248, sun: '#ffa866', si: 2.0, sky: '#f1c6a4', gnd: '#6a5446', hi: 0.9, top: '#f0be95', bot: '#b996a2', fog: '#d4ae9e', exp: 1.0 },
+  { name: '夜', min: 21 * 60, el: 48, az: 215, sun: '#a9bdf0', si: 0.6, sky: '#4a5a80', gnd: '#24211f', hi: 0.62, top: '#141d36', bot: '#323a5c', fog: '#2a3250', exp: 1.25 },
+];
+const bgCanvas = document.createElement('canvas'); bgCanvas.width = 4; bgCanvas.height = 256;
+const bgTex = new THREE.CanvasTexture(bgCanvas); bgTex.colorSpace = THREE.SRGBColorSpace; scene.background = bgTex;
+const cA3 = new THREE.Color(), cB3 = new THREE.Color();
+const lerpC = (a, b, k) => cA3.set(a).lerp(cB3.set(b), k).clone();
+let nightK = 0, TOD = 1;
+function setTime(t) {
+  const i = Math.min(2, Math.floor(t)), k = t - i, A = KEYS[i], Bk = KEYS[i + 1], L = (x, y) => x + (y - x) * k;
+  const el = L(A.el, Bk.el) * D2R, az = L(A.az, Bk.az) * D2R;
+  sun.position.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)).multiplyScalar(420);
+  sun.color.copy(lerpC(A.sun, Bk.sun, k)); sun.intensity = L(A.si, Bk.si);
+  hemi.color.copy(lerpC(A.sky, Bk.sky, k)); hemi.groundColor.copy(lerpC(A.gnd, Bk.gnd, k)); hemi.intensity = L(A.hi, Bk.hi);
+  renderer.toneMappingExposure = L(A.exp, Bk.exp);
+  scene.fog.color.copy(lerpC(A.fog, Bk.fog, k));
+  const x = bgCanvas.getContext('2d'), gr = x.createLinearGradient(0, 0, 0, 256);
+  gr.addColorStop(0, '#' + lerpC(A.top, Bk.top, k).getHexString()); gr.addColorStop(1, '#' + lerpC(A.bot, Bk.bot, k).getHexString());
+  x.fillStyle = gr; x.fillRect(0, 0, 4, 256); bgTex.needsUpdate = true;
+  nightK = smooth(2.15, 2.85, t); TOD = t;
+  NIGHT.forEach(([m, base, add]) => { m.emissiveIntensity = base + add * nightK; });
+  document.body.classList.toggle('night', nightK > 0.5);
+  const mins = Math.round(L(A.min, Bk.min)), name = t < 0.5 ? '朝' : t < 1.5 ? '昼' : t < 2.5 ? '夕方' : '夜';
+  const clock = `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`;
+  document.getElementById('clock').innerHTML = `${name}<b>${clock}</b>`;
+  document.getElementById('todName').textContent = `${name} ${clock}`;
+  if (window.__snd) window.__snd.clock(mins, t);
+}
+
+// ---------- 模型写真らしさ：ティルトシフト（上下をぼかす）と周辺減光 ----------
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: isTouch ? 2 : 4 }));
+composer.addPass(new RenderPass(scene, camera));
+const tiltPass = new ShaderPass({
+  uniforms: { tDiffuse: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uFocus: { value: 0.5 }, uRange: { value: 0.2 }, uAmount: { value: 0 }, uVig: { value: 0.16 } },
+  vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `
+    uniform sampler2D tDiffuse; uniform vec2 uRes; uniform float uFocus, uRange, uAmount, uVig; varying vec2 vUv;
+    void main() {
+      vec4 c = texture2D(tDiffuse, vUv);
+      float b = smoothstep(uRange, uRange + 0.36, abs(vUv.y - uFocus)) * uAmount;
+      if (b > 0.3) {
+        vec4 acc = c; vec2 px = vec2(b) / uRes;
+        for (int i = 1; i < 13; i++) { float a = float(i) * 2.39996, r = sqrt(float(i)) / 3.6; acc += texture2D(tDiffuse, vUv + vec2(cos(a), sin(a)) * r * px); }
+        c = acc / 13.0;
+      }
+      float v = smoothstep(0.35, 0.95, length((vUv - 0.5) * vec2(1.15, 1.0)));
+      c.rgb *= 1.0 - v * uVig;
+      gl_FragColor = c;
+    }`,
+});
+composer.addPass(tiltPass);
+composer.addPass(new OutputPass());
+let tiltOn = true;
+function tiltStrength() {
+  const base = (isTouch ? 3.4 : 5.2) * renderer.getPixelRatio();
+  return !tiltOn ? 0 : viewName === 'section' ? base * 0.35 : viewName === 'top' ? base * 0.55 : base;
+}
+if (isTouch) { sun.shadow.mapSize.set(1536, 1536); }
+
+// ---------- 操作パネル ----------
+{
+  const tod = document.getElementById('tod');
+  tod.addEventListener('input', () => setTime(+tod.value));
+  setTime(+tod.value);
+  document.querySelectorAll('#freq button').forEach(b => b.addEventListener('click', () => {
+    freq = b.dataset.f; document.querySelectorAll('#freq button').forEach(x => x.classList.toggle('on', x === b));
+    Object.values(LINES).forEach(L => { L.timer = Math.min(L.timer, FREQ[freq].T * 0.5); });
+  }));
+  const dep = document.getElementById('btnDepart');
+  dep.addEventListener('click', () => { departNow(); dep.classList.add('on'); setTimeout(() => dep.classList.remove('on'), 500); });
+  document.getElementById('btnTilt').addEventListener('click', (ev) => { tiltOn = !tiltOn; ev.currentTarget.classList.toggle('on', tiltOn); });
+  const panel = document.getElementById('panel');
+  document.getElementById('pToggle').addEventListener('click', () => panel.classList.toggle('collapsed'));
+  if (innerWidth < 640) panel.classList.add('collapsed');
+}
+
+// ============================================================
+//  環境音（Web Audio で合成。音声ファイルは使わない）
+//   電車・車と自転車・踏切・風・夕方のカラス・17時のチャイム
+// ============================================================
+const SND = (() => {
+  let ctx = null, master, rev, B, meter, enabled = true, started = false;
+  let wind, traffic;
+  const voices = new Map(), bells = new Map();
+  let gust = 0.5, gustT = 0, crowNext = 0, bikeNext = 8, lastMin = null, chimeUntil = 0, tod = 1;
+  const _p = new THREE.Vector3(), _r = new THREE.Vector3();
+  const now = () => ctx.currentTime;
+
+  function noiseBuf(type) {
+    const len = ctx.sampleRate * 3, b = ctx.createBuffer(1, len, ctx.sampleRate), d = b.getChannelData(0);
+    let l = 0, p0 = 0, p1 = 0, p2 = 0;
+    for (let i = 0; i < len; i++) {
+      const w = Math.random() * 2 - 1;
+      if (type === 'brown') { l = (l + 0.02 * w) / 1.02; d[i] = l * 3.5; }
+      else if (type === 'pink') { p0 = 0.99765 * p0 + w * 0.099046; p1 = 0.963 * p1 + w * 0.2965164; p2 = 0.57 * p2 + w * 1.0526913; d[i] = (p0 + p1 + p2 + w * 0.1848) * 0.18; }
+      else d[i] = w;
+    }
+    return b;
+  }
+  function impulse(sec, decay) {                      // 屋外らしい広がりの残響
+    const len = ctx.sampleRate * sec, b = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay); }
+    return b;
+  }
+  const loop = (buf) => { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.loopStart = Math.random(); s.start(now(), Math.random() * 2); return s; };
+  const filt = (type, f, q = 0.7) => { const n = ctx.createBiquadFilter(); n.type = type; n.frequency.value = f; n.Q.value = q; return n; };
+  const gain = (v = 0) => { const g = ctx.createGain(); g.gain.value = v; return g; };
+  const pan = () => (ctx.createStereoPanner ? ctx.createStereoPanner() : gain(1));
+  const link = (...n) => { for (let i = 0; i < n.length - 1; i++) n[i].connect(n[i + 1]); return n[n.length - 1]; };
+  const set = (param, v, tc = 0.12) => param.setTargetAtTime(v, now(), tc);
+  // 聞いている位置（カメラ）からの距離による音量と左右の定位
+  function place(e, n, y = 1) {
+    _p.set(e * S, y * S, -n * S);
+    const d = _p.distanceTo(camera.position);
+    _r.setFromMatrixColumn(camera.matrixWorld, 0);
+    const side = _p.clone().sub(camera.position).dot(_r) / Math.max(1, d);
+    return { d, pan: Math.max(-0.85, Math.min(0.85, side)) };
+  }
+  const att = (d, ref) => 1 / (1 + Math.pow(d / ref, 1.7));
+
+  function init() {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    master = gain(0.9);
+    meter = ctx.createAnalyser(); meter.fftSize = 2048; master.connect(meter);
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3;
+    link(master, comp, ctx.destination);
+    rev = ctx.createConvolver(); rev.buffer = impulse(2.6, 3.2); link(rev, gain(0.32), master);
+    B = { white: noiseBuf('white'), pink: noiseBuf('pink'), brown: noiseBuf('brown') };
+    // 空気：低い風の音
+    wind = { g: gain(0) }; link(loop(B.pink), filt('lowpass', 380), wind.g, master);
+    // 車の走行音：近くの車の数で大きくなる
+    traffic = { g: gain(0), p: pan() };
+    const tg = gain(1); link(loop(B.brown), filt('lowpass', 260), tg); link(loop(B.pink), filt('bandpass', 1000, 0.6), gain(0.35), tg);
+    link(tg, traffic.g, traffic.p, master);
+  }
+
+  // ---- 電車1編成ぶんの音 ----
+  function trainVoice() {
+    const out = gain(0), p = pan(); link(out, p, master); link(out, gain(0.22), rev);
+    const rg = gain(0), railG = gain(0), motG = gain(0), sqG = gain(0);
+    link(loop(B.brown), filt('lowpass', 150), rg, out);                       // 低い走行音
+    link(loop(B.pink), filt('bandpass', 780, 0.9), railG, out);               // レールの音
+    const mot = ctx.createOscillator(), mot2 = ctx.createOscillator();        // モーター（速度とともに音程が上がる）
+    mot.type = 'sawtooth'; mot2.type = 'square'; mot2.detune.value = 700;
+    const mf = filt('bandpass', 1100, 2.5); mot.connect(mf); mot2.connect(mf); link(mf, motG, out); mot.start(); mot2.start();
+    const sq = ctx.createOscillator(); sq.frequency.value = 3300; const vib = ctx.createOscillator(); vib.frequency.value = 6.5;
+    const vg = gain(28); link(vib, vg); vg.connect(sq.frequency); link(sq, sqG, out); sq.start(); vib.start();   // ブレーキのきしみ
+    return { out, p, rg, railG, motG, sqG, mot, mot2, next: 0, stops: [mot, mot2, sq, vib] };
+  }
+  function clack(when, vol, panV) {                                          // ガタン・ゴトン
+    const s = ctx.createBufferSource(); s.buffer = B.white;
+    const g = gain(0), p = pan(); if (p.pan) p.pan.value = panV;
+    link(s, filt('bandpass', 240, 1.1), g, p, master);
+    g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vol, when + 0.004); g.gain.exponentialRampToValueAtTime(0.0008, when + 0.09);
+    s.start(when, Math.random() * 2, 0.12);
+  }
+  function updateTrains(trs) {
+    const alive = new Set();
+    trs.forEach(t => {
+      if (t.dead || t.state === 'away' || !t.cars.length) return;
+      alive.add(t);
+      let v = voices.get(t); if (!v) { v = trainVoice(); voices.set(t, v); }
+      const mid = t.cars[Math.floor(t.cars.length / 2)].position, pl = place(mid.x, -mid.z, 2);
+      const a = att(pl.d, 75), sp = t.v / TR.vmax;
+      if (v.p.pan) set(v.p.pan, pl.pan, 0.2);
+      set(v.out.gain, a, 0.15);
+      set(v.rg.gain, (0.12 + 0.88 * sp) * 0.9 * (sp > 0.01 ? 1 : 0.15));
+      set(v.railG.gain, sp * 0.45);
+      const f = 160 + t.v * 52; set(v.mot.frequency, f, 0.25); set(v.mot2.frequency, f * 1.5, 0.25);
+      const accel = t.state === 'run' && (t.v < TR.vmax - 0.3);
+      set(v.motG.gain, sp > 0.02 ? (accel ? 0.05 : 0.015) : 0, 0.3);
+      set(v.sqG.gain, t.state === 'run' && t.stopS != null && t.v < 3.2 && t.v > 0.25 && t.stopS - t.s < 30 ? 0.012 : 0, 0.2);
+      // 継ぎ目の音：1両ぶん進むごとに台車4つ
+      if (t.v > 0.6 && pl.d < 260) {
+        if (v.next < now()) v.next = now();
+        while (v.next < now() + 0.25) {
+          const T0 = v.next, k = 1 / t.v, vol = a * Math.min(1, sp * 1.4) * 0.55;
+          [0, 2.4, 5.1, 7.5].forEach(x => clack(T0 + x * k, vol, pl.pan));
+          v.next += (CAR + GAP) * k;
+        }
+      }
+    });
+    voices.forEach((v, t) => {
+      if (alive.has(t)) return;
+      set(v.out.gain, 0, 0.2); setTimeout(() => { v.stops.forEach(o => { try { o.stop(); } catch (e) {} }); v.out.disconnect(); }, 1500);
+      voices.delete(t);
+    });
+  }
+  // ---- 踏切：カンカン（左右の警報器が少しずれた音程で交互に） ----
+  function ding(when, f, vol, panV) {
+    const g = gain(0), p = pan(); if (p.pan) p.pan.value = panV;
+    link(g, p, master); link(g, gain(0.3), rev);
+    [[1, 1], [2.72, 0.35], [5.1, 0.12]].forEach(([m, a]) => {
+      const o = ctx.createOscillator(); o.type = m === 1 ? 'triangle' : 'sine'; o.frequency.value = f * m;
+      const og = gain(a); link(o, og, g); o.start(when); o.stop(when + 0.5);
+    });
+    g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vol, when + 0.004); g.gain.exponentialRampToValueAtTime(0.0005, when + 0.32);
+  }
+  function updateCrossings(list) {
+    list.forEach(c => {
+      let b = bells.get(c); if (!b) { b = { next: 0, i: 0 }; bells.set(c, b); }
+      if (!c.active) { b.next = 0; return; }
+      const pl = place(c.e, c.n, 3), a = att(pl.d, 60) * 0.32;
+      if (b.next < now()) b.next = now() + 0.02;
+      while (b.next < now() + 0.2) { ding(b.next, b.i % 2 ? 690 : 760, a, pl.pan + (b.i % 2 ? 0.1 : -0.1)); b.i++; b.next += 0.43; }
+    });
+  }
+  // ---- 車の流れと自転車のベル ----
+  function updateTraffic(cars, bikes, night, dt) {
+    let sum = 0, px = 0;
+    cars.forEach(x => { const q = x.p.at(x.s), pl = place(q.e, q.n, 1); const w = 1 / (1 + Math.pow(pl.d / 34, 2)); sum += w; px += w * pl.pan; });
+    set(traffic.g.gain, Math.min(0.42, sum * 0.16) * (night ? 0.55 : 1), 0.4);
+    if (traffic.p.pan) set(traffic.p.pan, sum ? px / sum : 0, 0.5);
+    bikeNext -= dt;
+    if (bikeNext < 0) {
+      bikeNext = 9 + Math.random() * 14;
+      const b = bikes[Math.floor(Math.random() * bikes.length)]; if (!b) return;
+      const q = b.p.at(b.s), pl = place(q.e, q.n, 1), a = att(pl.d, 40) * 0.12;
+      if (a > 0.01) [0, 0.16].forEach(dt => ding(now() + dt, 2550, a, pl.pan));       // チリンチリン
+    }
+  }
+  // ---- 渋滞のクラクション ----
+  function honk(e, n) {
+    if (!ctx || !started || !enabled) return;
+    const pl = place(e, n, 2), a = att(pl.d, 50) * 0.08; if (a < 0.004) return;
+    const g = gain(0), p = pan(); if (p.pan) p.pan.value = pl.pan; link(g, filt('lowpass', 1800), p, master); link(g, gain(0.3), rev);
+    const t = now(), len = Math.random() < 0.5 ? 0.18 : 0.42;
+    [415, 520].forEach(f => { const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = f; o.connect(g); o.start(t); o.stop(t + len + 0.05); });
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(a, t + 0.01); g.gain.setValueAtTime(a, t + len); g.gain.linearRampToValueAtTime(0, t + len + 0.04);
+  }
+  // ---- 夕方のカラス ----
+  function caw(when, vol, panV, f0) {
+    const o = ctx.createOscillator(), o2 = ctx.createOscillator(); o.type = 'sawtooth'; o2.type = 'sawtooth'; o2.detune.value = 18;
+    const shp = ctx.createWaveShaper(), curve = new Float32Array(256);
+    for (let i = 0; i < 256; i++) { const x = i / 128 - 1; curve[i] = Math.tanh(x * 3.5); } shp.curve = curve;
+    const g = gain(0), p = pan(); if (p.pan) p.pan.value = panV;
+    o.connect(shp); o2.connect(shp); link(shp, filt('bandpass', 1250, 1.3), filt('peaking', 2400, 2), g, p, master); link(g, gain(0.6), rev);
+    [o, o2].forEach(x => { x.frequency.setValueAtTime(f0, when); x.frequency.linearRampToValueAtTime(f0 * 1.08, when + 0.06); x.frequency.exponentialRampToValueAtTime(f0 * 0.74, when + 0.38); x.start(when); x.stop(when + 0.5); });
+    g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vol, when + 0.035); g.gain.setTargetAtTime(vol * 0.6, when + 0.12, 0.08); g.gain.linearRampToValueAtTime(0, when + 0.42);
+  }
+  // ---- 17時のチャイム（オリジナルの短い旋律、屋外スピーカーのこだま付き） ----
+  const NOTE = { F4: 349.23, G4: 392, A4: 440, C5: 523.25, D5: 587.33, F5: 698.46 };
+  const MEL = [['C5', 1], ['C5', 1], ['D5', 1], ['C5', 1], ['A4', 2], ['G4', 1], ['F4', 1],
+    ['G4', 1], ['A4', 1], ['C5', 1], ['A4', 1], ['G4', 4],
+    ['A4', 1], ['C5', 1], ['D5', 1], ['F5', 1], ['D5', 1], ['C5', 1], ['A4', 2],
+    ['G4', 1], ['A4', 1], ['C5', 1], ['G4', 1], ['F4', 4]];
+  function chime() {
+    const bus = gain(0.2), lp = filt('lowpass', 3200);
+    link(bus, lp, master); link(lp, gain(0.7), rev);
+    [[0.46, 0.42], [1.15, 0.26]].forEach(([dt, a]) => { const d = ctx.createDelay(2); d.delayTime.value = dt; link(lp, d, filt('lowpass', 1800), gain(a), master); });   // 遠くのスピーカーのこだま
+    let t = now() + 0.3; const beat = 0.6;
+    MEL.forEach(([n, len]) => {
+      const f = NOTE[n], g = gain(0); link(g, bus);
+      [[1, 1], [2, 0.3], [3.01, 0.14], [4.2, 0.06]].forEach(([m, a]) => { const o = ctx.createOscillator(); o.frequency.value = f * m; const og = gain(a); link(o, og, g); o.start(t); o.stop(t + 2.4); });
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + 2.2);
+      t += len * beat;
+    });
+    chimeUntil = performance.now() + (t - now() + 2) * 1000;
+  }
+
+  function update(dt) {
+    if (!started || !enabled) return;
+    gustT -= dt; if (gustT < 0) { gustT = 1.5 + Math.random() * 3.5; gust = 0.3 + Math.random() * 0.8; }
+    const night = tod > 2.6;
+    set(wind.g.gain, (0.05 + gust * 0.07) * (night ? 0.8 : 1), 1.2);
+    updateTrains(trains);
+    updateCrossings(CROSSINGS);
+    updateTraffic(AUDIO_SRC.cars, AUDIO_SRC.bikes, night, dt);
+    if (tod > 1.7 && tod < 2.6) {                                            // 16:30〜18:30 ごろ
+      crowNext -= dt;
+      if (crowNext < 0) {
+        crowNext = 5 + Math.random() * 8;
+        const n = 2 + Math.floor(Math.random() * 2), pv = (Math.random() - 0.5) * 1.4, f0 = 520 + Math.random() * 140, vol = 0.07 + Math.random() * 0.05;
+        for (let i = 0; i < n; i++) caw(now() + i * (0.55 + Math.random() * 0.15), vol, pv, f0 * (1 - i * 0.02));
+      }
+    }
+  }
+  function start() {
+    if (!enabled) return;
+    if (!ctx) init();
+    if (ctx.state !== 'running') ctx.resume();
+    started = true;
+  }
+  return {
+    update, start,
+    toggle(on) { enabled = on; if (!ctx) { if (on) start(); return; } set(master.gain, on ? 0.9 : 0, 0.1); if (on) { ctx.resume(); started = true; } },
+    clock(mins, t) {                                                          // 時間帯スライダーが17:00をまたいだらチャイム
+      tod = t;
+      if (lastMin != null && ctx && started && enabled && (lastMin - 1020) * (mins - 1020) <= 0 && lastMin !== mins && performance.now() > chimeUntil) chime();
+      lastMin = mins;
+    },
+    playing: () => performance.now() < chimeUntil,
+    honk,
+    level() { if (!meter) return 0; const a = new Float32Array(meter.fftSize); meter.getFloatTimeDomainData(a); let r = 0; a.forEach(v => r += v * v); return Math.sqrt(r / a.length); },
+    state: () => ctx ? ctx.state : 'none',
+  };
+})();
+['pointerdown', 'keydown', 'touchend'].forEach(ev => addEventListener(ev, () => SND.start(), { passive: true }));
+window.__snd = SND;
+UPDATERS.push((dt) => { SND.update(dt); document.getElementById('clock').classList.toggle('chime', SND.playing()); });
+{
+  const b = document.getElementById('btnSound'); let on = true;
+  b.addEventListener('click', (ev) => { ev.stopPropagation(); on = !on; b.classList.toggle('on', on); SND.toggle(on); });
+}
+
+// ============================================================
+//  カメラ・操作
+// ============================================================
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 25; controls.maxDistance = 2600;
+controls.maxPolarAngle = 86 * D2R;
+controls.screenSpacePanning = true;
+const TGT = new THREE.Vector3(10, 0, -6);
+
+function halfFovs() {
+  const v = camera.fov * D2R / 2, h = Math.atan(Math.tan(v) * camera.aspect);
+  return { v, h };
+}
+const VIEWS = {
+  sw() {
+    const { v, h } = halfFovs(), d = 250 / Math.sin(Math.min(v, h)) * (camera.aspect < 1 ? 1.02 : 0.9);
+    return { pos: TGT.clone().addScaledVector(new THREE.Vector3(1, 0.95, 1).normalize(), d), tgt: TGT.clone() };      // 南東の上空から北西を見る
+  },
+  top() {
+    const { v, h } = halfFovs(), d = 196 / Math.tan(Math.min(v, h));
+    return { pos: new THREE.Vector3(0, d, 0.01), tgt: new THREE.Vector3(0, 0, 0) };
+  },
+  section() {
+    const { h } = halfFovs(), d = Math.max(80, 40 / Math.tan(h));
+    const tgt = new THREE.Vector3((PAS.e0 + PAS.e1) / 2 * S, -1.8 * S, -CUT_N * S - 2);
+    return { pos: tgt.clone().addScaledVector(new THREE.Vector3(-0.22, 0.24, 1).normalize(), d), tgt };
+  },
+};
+let tween = null, viewName = 'sw', labelsOn = false;
+const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+function setSection(on) {
+  secPlane.constant = on ? -CUT_N * S : 1e5;
+  capGroup.visible = capSt.visible = on;
+  labelGroup.children.forEach(s => { s.visible = labelsOn && (!on || s.userData.isPassage); });
+}
+function go(name, instant = false) {
+  viewName = name;
+  setSection(name === 'section');
+  const v = VIEWS[name]();
+  document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === name));
+  if (instant) { camera.position.copy(v.pos); controls.target.copy(v.tgt); controls.update(); return; }
+  tween = { p0: camera.position.clone(), t0: controls.target.clone(), p1: v.pos, t1: v.tgt, start: performance.now(), dur: 1400 };
+}
+controls.addEventListener('start', () => { tween = null; });
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => go(b.dataset.view)));
+
+function resize() {
+  camera.aspect = innerWidth / innerHeight;
+  camera.fov = camera.aspect < 1 ? 46 : 32;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight);
+  tiltPass.uniforms.uRes.value.set(innerWidth * renderer.getPixelRatio(), innerHeight * renderer.getPixelRatio());
+}
+addEventListener('resize', resize);
+resize();
+go('sw', true);
+setSection(false);
+
+// ============================================================
+//  描画ループ
+// ============================================================
+let lastT = performance.now();
+renderer.setAnimationLoop((now) => {
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  UPDATERS.forEach(f => f(dt, now / 1000));
+  if (tween) {
+    const k = ease(Math.min(1, (now - tween.start) / tween.dur));
+    camera.position.lerpVectors(tween.p0, tween.p1, k);
+    controls.target.lerpVectors(tween.t0, tween.t1, k);
+    if (k >= 1) tween = null;
+  }
+  controls.target.x = THREE.MathUtils.clamp(controls.target.x, -B, B);
+  controls.target.z = THREE.MathUtils.clamp(controls.target.z, -B, B);
+  controls.target.y = THREE.MathUtils.clamp(controls.target.y, BASE, 40);
+  controls.update();
+  const d = camera.position.distanceTo(controls.target);
+  scene.fog.near = d * 0.8; scene.fog.far = d * 3.2;
+  const ta = tiltStrength(); tiltPass.uniforms.uAmount.value += (ta - tiltPass.uniforms.uAmount.value) * 0.12;
+  tiltPass.uniforms.uVig.value = tiltOn ? 0.16 : 0;
+  composer.render();
+});
+document.getElementById('loading').style.opacity = 0;
+setTimeout(() => document.getElementById('loading').remove(), 700);
+window.__dbg = { scene, camera, controls, go, ROUTE, trains, CROSSINGS, setTime };
+</script>
+</body>
+</html>
